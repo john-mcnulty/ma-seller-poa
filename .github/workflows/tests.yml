@@ -1,0 +1,36 @@
+name: tests
+
+# Builds every fictional scenario in tests/scenarios with the real scripts and compares the text
+# of each POA with tests/expected. Needs pandoc, LibreOffice, and poppler, the same tools a user
+# installs (see the README).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pandoc, LibreOffice, poppler, fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc libreoffice-writer poppler-utils fonts-liberation
+          python -m pip install --quiet Pillow
+
+      - name: Doctor (required tools; the attorney setting is supplied for the check)
+        run: python skills/seller-poa/scripts/doctor.py --attorney-in-fact "Alex Q. Attorney, Esq."
+
+      - name: Regression suite
+        run: python tests/run_tests.py

@@ -1,0 +1,56 @@
+{
+  "address": "123 Sample Street, Hingham, MA 02043",
+  "ps_date": "2026-09-01",
+  "buyers": "William F. Buyer and Jessica Buyer",
+  "price": "500,000.00",
+  "signing_date": "2026-09-16",
+  "notary_state": "Massachusetts",
+  "county": "Plymouth",
+  "principals": [
+    {
+      "type": "individual",
+      "sellers": [
+        "Laura Example"
+      ],
+      "pronoun": "she"
+    },
+    {
+      "type": "trustee",
+      "trust_name": "Doe Family Trust",
+      "trustees": [
+        "Jane Doe"
+      ],
+      "trust_date": "2015-03-03",
+      "trust_date_source": "P&S SELLER entry",
+      "pronoun": "she"
+    },
+    {
+      "type": "entity",
+      "entity_name": "Sample Holdings, LLC",
+      "state": "Massachusetts",
+      "entity_type": "limited liability company",
+      "signers": [
+        {
+          "name": "Ann Manager",
+          "title": "Manager"
+        }
+      ],
+      "pronoun": "she"
+    },
+    {
+      "type": "estate",
+      "estate_name": "Estate of Edith A. Sample",
+      "signers": [
+        "Ellen K. Example"
+      ],
+      "capacity": "Personal Representative",
+      "probate_county": "Worcester",
+      "docket": "WO24P0000EA",
+      "pronoun": "she"
+    }
+  ],
+  "_test": {
+    "mode": "same",
+    "expect": "OK"
+  }
+}

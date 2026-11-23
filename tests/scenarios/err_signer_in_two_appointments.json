@@ -1,0 +1,37 @@
+{
+  "address": "123 Sample Street, Hingham, MA 02043",
+  "ps_date": "2026-09-01",
+  "buyers": "William F. Buyer and Jessica Buyer",
+  "price": "500,000.00",
+  "signing_date": "2026-09-16",
+  "notary_state": "Massachusetts",
+  "county": "Plymouth",
+  "appointments": [
+    {
+      "signers": [
+        "Peter F. Example",
+        "Jessica H. Example"
+      ]
+    },
+    {
+      "signers": [
+        "Jessica H. Example"
+      ],
+      "pronoun": "she"
+    }
+  ],
+  "principals": [
+    {
+      "type": "individual",
+      "sellers": [
+        "Peter F. Example",
+        "Jessica H. Example"
+      ]
+    }
+  ],
+  "_test": {
+    "mode": "same",
+    "expect": "STOPPED",
+    "reason": "notary appointments"
+  }
+}

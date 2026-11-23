@@ -1,0 +1,25 @@
+{
+  "address": "123 Sample Street, Hingham, MA 02043",
+  "ps_date": "2026-09-01",
+  "buyers": "William F. Buyer and Jessica Buyer",
+  "price": "500,000.00",
+  "signing_date": "2026-09-16",
+  "notary_state": "Massachusetts",
+  "county": "Plymouth",
+  "principals": [
+    {
+      "type": "trustee",
+      "trust_name": "The Doe Family Trust",
+      "trustees": [
+        "Jane Doe",
+        "John Doe"
+      ],
+      "trust_date": "2015-03-03",
+      "trust_date_source": "P&S SELLER entry"
+    }
+  ],
+  "_test": {
+    "mode": "same",
+    "expect": "OK"
+  }
+}

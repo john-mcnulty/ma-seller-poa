@@ -1,0 +1,4 @@
+# Normalize text to LF in the repository and the working tree (the pre-commit hook is a /bin/sh
+# script and will not run with CRLF line endings). The two Word templates are binary.
+* text=auto eol=lf
+*.docx binary

@@ -1,0 +1,45 @@
+__pycache__/
+*.pyc
+
+# --- Client data: belt and braces -----------------------------------------------------------
+# scripts/scrub_check.py already BLOCKS a commit containing any of these. This list is the second
+# layer, so they never reach the index at all. A .gitignore is not a substitute for the gate (it
+# is bypassed with `git add -f` and does nothing about files already tracked).
+#
+# The skill reads signed P&S agreements, deeds, probate papers and corporate records, and writes
+# finished POAs, all naming real people and addresses. Never point a run at a checkout.
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.tif
+*.tiff
+*.doc
+*.docx
+*.rtf
+*.odt
+*.msg
+*.eml
+# ...except the two inspected templates (allowlisted by exact path AND hash in scrub_check.py)
+!skills/seller-poa/assets/POA. Seller. Form 2.docx
+!skills/seller-poa/assets/POA. Seller. Form 4.docx
+poa_values*.json
+ps_accepted*.txt
+ps_redline*.txt
+
+# Never, under any circumstances, the name map or the tools that carry real names. They live
+# OUTSIDE this repository by design.
+*namemap*
+*apply_scrub*
+*verify_scrub*
+*scrub_inventory*
+*rebuild_templates*
+*PRIVATE*
+
+# Credentials and local environments
+.env
+*.pem
+*.key
+.venv/
+venv/

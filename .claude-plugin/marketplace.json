@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ma-seller-poa",
+  "description": "Massachusetts conveyancing: Seller's Limited Power of Attorney drafting.",
+  "owner": {
+    "name": "John McNulty",
+    "email": "john.mcnulty80@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "ma-seller-poa",
+      "description": "Drafts a Massachusetts Seller's Limited Power of Attorney (.docx) from a Purchase and Sale Agreement. A drafting aid for attorney review; not legal advice.",
+      "author": {
+        "name": "John McNulty",
+        "email": "john.mcnulty80@gmail.com"
+      },
+      "category": "productivity",
+      "keywords": [
+        "massachusetts",
+        "real-estate",
+        "conveyancing",
+        "power-of-attorney"
+      ],
+      "source": "./",
+      "license": "MIT"
+    }
+  ]
+}

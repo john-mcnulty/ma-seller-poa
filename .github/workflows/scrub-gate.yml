@@ -1,0 +1,46 @@
+name: scrub-gate
+
+# The local gate is a pre-commit hook in .git/hooks, and .git/hooks does not clone. This workflow
+# runs the same gate on the server, where it cannot be skipped or lost with a fresh checkout.
+#
+# It runs the STRUCTURAL half only: it looks for client data by SHAPE (PDFs, Word files other than
+# the two inspected templates, images, run values files, home paths, credentials) and needs no
+# list of real names by design. The name-identity half needs the maintainer's private verifier,
+# which is not in this repo and never will be.
+#
+# For a contributor: CI passing does NOT prove a patch is free of client identifiers. See
+# SECURITY.md before adding any example.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scrub-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # every commit: a private->public flip exposes all of history
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Structural scrub gate (working tree)
+        run: python scripts/scrub_check.py --structural-only
+
+      - name: Every commit, not just the tip
+        run: python scripts/scrub_check.py --history
+
+      - name: The gate blocks what it claims to
+        run: python tests/test_scrub_gate.py
+
+      - name: Manifests and settings files are valid JSON
+        run: |
+          python -c "import json;[json.load(open(p)) for p in ['.claude-plugin/plugin.json','.claude-plugin/marketplace.json','skills/seller-poa/firm-settings.json']];print('json parses')"

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "ma-seller-poa",
+  "displayName": "MA Seller POA",
+  "version": "0.1.0",
+  "description": "Drafts a Massachusetts Seller's Limited Power of Attorney (.docx) from a Purchase and Sale Agreement: individual, entity, trustee, and probate estate sellers. A drafting aid for attorney review; not legal advice.",
+  "author": {
+    "name": "John McNulty",
+    "email": "john.mcnulty80@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "massachusetts",
+    "real-estate",
+    "conveyancing",
+    "power-of-attorney",
+    "purchase-and-sale",
+    "closing"
+  ],
+  "userConfig": {
+    "attorney_in_fact": {
+      "type": "string",
+      "title": "Attorney in fact (required)",
+      "description": "The attorney every POA appoints, exactly as it should print, e.g. \"Alex Q. Attorney, Esq.\". There is no default: the skill refuses to build a POA until this is set.",
+      "required": true
+    },
+    "signing_locations": {
+      "type": "string",
+      "title": "Signing locations",
+      "description": "Your firm's usual signing places, offered as a pick list for the notary location. Format: Label = County, State; separate entries with semicolons. The FIRST entry is the default. Example: Main office = Plymouth County, MA; Boston office = Suffolk County, MA. A Massachusetts county must be one of the 14. Leave empty to type the place each time.",
+      "default": ""
+    },
+    "signature_page": {
+      "type": "string",
+      "title": "Signature page placement",
+      "description": "same-page (default): keep the signatures and notary block on the same page as the POA text when they fit. separate-page: always use a separate signature page. ask: ask every time.",
+      "default": "same-page"
+    },
+    "default_notary_state": {
+      "type": "string",
+      "title": "Default notary state",
+      "description": "Used when a place gives no state, and for the 'leave the county blank' option. The notary wording is Massachusetts wording; other states print a reminder to confirm it.",
+      "default": "Massachusetts"
+    }
+  }
+}

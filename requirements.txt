@@ -1,0 +1,13 @@
+# ma-seller-poa -- Python packages.
+#
+# The scripts use only the Python standard library. Nothing here is strictly required.
+#
+# The REQUIRED programs are not Python packages -- install them separately (see the README):
+#   pandoc       https://pandoc.org/installing.html
+#   LibreOffice  https://www.libreoffice.org/download/
+#   and a PDF reader: poppler's pdftotext, or PyMuPDF below.
+#
+# Check everything with:  python skills/seller-poa/scripts/doctor.py
+
+pymupdf>=1.24     # PDF reader for the signature-page layout -- needed only without poppler's pdftotext
+Pillow>=10.0      # optional: exact width fitting of long names in the signature lines

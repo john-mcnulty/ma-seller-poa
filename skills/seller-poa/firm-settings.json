@@ -1,0 +1,7 @@
+{
+  "_readme": "Firm settings for the Seller POA skill when it is installed WITHOUT the plugin settings (for example, the skill folder uploaded on its own). Plugin settings, when set, take priority. attorney_in_fact is required: every POA appoints this person. signing_locations: 'Label = County, State' entries; the first is the default. signature_page: same-page, separate-page, or ask.",
+  "attorney_in_fact": "",
+  "signing_locations": [],
+  "signature_page": "same-page",
+  "default_notary_state": "Massachusetts"
+}

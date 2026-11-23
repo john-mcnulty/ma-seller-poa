@@ -1,0 +1,31 @@
+{
+  "address": "123 Sample Street, Hingham, MA 02043",
+  "ps_date": "2026-09-01",
+  "buyers": "William F. Buyer and Jessica Buyer",
+  "price": "500,000.00",
+  "signing_date": "2026-09-16",
+  "notary_state": "Massachusetts",
+  "county": "Plymouth",
+  "principals": [
+    {
+      "type": "entity",
+      "entity_name": "Friends Of The Example Harbor Shelter, Inc.",
+      "state": "Massachusetts",
+      "entity_type": "Nonprofit Corporation",
+      "signers": [
+        {
+          "name": "Olivia Example",
+          "title": "President"
+        },
+        {
+          "name": "Beatrice Sample",
+          "title": "Treasurer"
+        }
+      ]
+    }
+  ],
+  "_test": {
+    "mode": "same",
+    "expect": "OK"
+  }
+}
