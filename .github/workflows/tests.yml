@@ -37,8 +37,8 @@ jobs:
         run: python tests/run_tests.py
 
   # The same suite on Windows, the system most firms run Claude Code on. LibreOffice and pandoc
-  # are installed with Chocolatey; neither installer puts its folder on the PATH of later steps,
-  # so both are added explicitly (the scripts also look in LibreOffice's install folder).
+  # are installed with Chocolatey; neither installer puts its folder on the PATH of later steps.
+  # Pandoc's folder is added; LibreOffice is found in its install folder by the scripts.
   regression-windows:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -62,7 +62,8 @@ jobs:
             Start-Sleep -Seconds (60 * $attempt)
           }
           "C:\Program Files\Pandoc" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-          "C:\Program Files\LibreOffice\program" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          # LibreOffice's folder is NOT added to the PATH: it holds LibreOffice's own python.exe,
+          # which would replace this job's Python (without PyMuPDF). The scripts find soffice there.
           python -m pip install --quiet pymupdf Pillow
 
       - name: Doctor (required tools; the attorney setting is supplied for the check)
