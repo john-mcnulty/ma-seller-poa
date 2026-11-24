@@ -3,6 +3,14 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.2.2 — shorter file names
+
+- **The POA file name now uses the street address only.** The town, state, and ZIP code are
+  dropped, any unit number is kept, and the address's commas are removed:
+  `Power of Attorney. Seller. 123 Sample Street Unit 4.docx` (was
+  `…123 Sample Street, Unit 4, Hingham, MA 02043.docx`). The POA text still states the full
+  address. Test expectations renamed to match.
+
 ## 0.2.1 — no blank page after a full one-page POA
 
 - **A POA that fits on one page no longer gets a blank second page.** The empty paragraphs after

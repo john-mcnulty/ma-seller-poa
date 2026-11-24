@@ -73,7 +73,7 @@ Point it at a P&S (a signed PDF, preferred, or a Word file) and say "do the sell
    whether everyone signs at the same appointment, and whether the Buyer or price changed.
 5. Builds each POA, lays out the signature page, checks singular/plural agreement throughout
    (I/We, my/our, Trustee/Trustees, he/she/they), and saves
-   `Power of Attorney. Seller. [Property Address].docx` next to the P&S. It never overwrites a file.
+   `Power of Attorney. Seller. [Street Address].docx` next to the P&S. It never overwrites a file.
 
 ### A worked example (fictional)
 

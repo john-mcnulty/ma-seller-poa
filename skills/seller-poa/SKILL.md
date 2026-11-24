@@ -144,8 +144,8 @@ the signature page to the property, and a notice when page 1 ends with a large b
 
 One new Word file per principal, saved to the same folder as the input P&S Agreement:
 ```
-Power of Attorney. Seller. [Inline Property Address].docx                      (one POA)
-Power of Attorney. Seller. [Inline Property Address]. [Principal's Name].docx   (two or more POAs)
+Power of Attorney. Seller. [Street Address].docx                      (one POA)
+Power of Attorney. Seller. [Street Address]. [Principal's Name].docx   (two or more POAs)
 ```
 Most transactions have one principal and so one POA. See Step 5 for the principal's name. When
 the P&S has no folder on disk (e.g., it was attached in a chat), save the POAs to the working
@@ -1154,12 +1154,17 @@ break, caption, or notice by hand. Details: `references/document-format.md`.
 
 **Output filenames** (set by `build_all_poas.py`):
 ```
-Power of Attorney. Seller. [Inline Property Address].docx                      (one POA)
-Power of Attorney. Seller. [Inline Property Address]. [Principal's Name].docx   (two or more POAs)
+Power of Attorney. Seller. [Street Address].docx                      (one POA)
+Power of Attorney. Seller. [Street Address]. [Principal's Name].docx   (two or more POAs)
 ```
-Examples: `Power of Attorney. Seller. 120 Sample Street, Hingham, MA 02043.docx`;
-`Power of Attorney. Seller. 123 Sample Street, Hingham, MA 02043. John Smith.docx` and
-`Power of Attorney. Seller. 123 Sample Street, Hingham, MA 02043. Smith Family Trust.docx`.
+Examples: `Power of Attorney. Seller. 120 Sample Street.docx`;
+`Power of Attorney. Seller. 123 Sample Street Unit 4.docx`;
+`Power of Attorney. Seller. 123 Sample Street. John Smith.docx` and
+`Power of Attorney. Seller. 123 Sample Street. Smith Family Trust.docx`.
+
+The **street address** is the property address without the town, state, and ZIP code, keeping
+any unit number, with its commas removed ("123 Sample Street, Unit 4, Hingham, MA 02043" ->
+"123 Sample Street Unit 4"). The POA itself still states the full address.
 
 The **principal's name** is the individual sellers' names ("John Smith", "John Smith and Jane
 Smith", "A, B, and C"), or the trust, entity, or estate name, each as it reads in the POA (so

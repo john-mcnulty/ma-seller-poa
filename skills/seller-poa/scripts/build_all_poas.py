@@ -68,8 +68,10 @@ single POA. "pronouns" gives the pronoun for each person who is alone in a POA's
 "appointments" (if any) is used instead of the top-level list.
 
 File names:
-  one POA          -> "Power of Attorney. Seller. [Address].docx"
-  two or more POAs -> "Power of Attorney. Seller. [Address]. [Principal's Name].docx"
+  one POA          -> "Power of Attorney. Seller. [Street Address].docx"
+  two or more POAs -> "Power of Attorney. Seller. [Street Address]. [Principal's Name].docx"
+  Street address: the address without the town, state, and ZIP, keeping any unit, commas
+  removed ("123 Sample Street, Unit 4, Hingham, MA 02043" -> "123 Sample Street Unit 4").
   Principal's name: the individuals' names ("John Smith", "John Smith and Jane Smith",
   "A, B, and C"), the trust name, the entity name, or the estate name, as in the P&S. Characters
   Windows does not allow in file names (\\ / : * ? " < > |) become "-"; a trailing period is
@@ -112,8 +114,26 @@ def principal_name(p):
             "estate": p.get("estate_name")}[t]
 
 
+STATE_ZIP = re.compile(r"^(MA|Mass\.?|Massachusetts)?\.?\s*(\d{5}(-\d{4})?)?$", re.I)
+TOWN_STATE_ZIP = re.compile(r"\s(MA|Mass\.?|Massachusetts)\.?(\s+\d{5}(-\d{4})?)?$|\s\d{5}(-\d{4})?$", re.I)
+
+
+def street_address(address):
+    """The address for the file name: street and unit only, no town / state / ZIP, no commas.
+    "123 Sample Street, Unit 4, Hingham, MA 02043" -> "123 Sample Street Unit 4"."""
+    segs = [s.strip() for s in address.split(",") if s.strip()]
+    if len(segs) > 1 and STATE_ZIP.match(segs[-1]):
+        segs.pop()                          # "MA 02043"
+        if len(segs) > 1:
+            segs.pop()                      # the town
+    elif len(segs) > 1 and TOWN_STATE_ZIP.search(segs[-1]):
+        segs.pop()                          # "Hingham MA 02043" written as one segment
+    street = " ".join(segs) if segs else address.strip()
+    return re.sub(r"\s+", " ", street.replace(",", " ")).strip()
+
+
 def file_name(address, name=None):
-    parts = ["Power of Attorney", "Seller", address.strip()] + ([name.strip()] if name else [])
+    parts = ["Power of Attorney", "Seller", street_address(address)] + ([name.strip()] if name else [])
     base = ". ".join(BAD_CHARS.sub("-", x).strip() for x in parts)
     return base.rstrip(". ") + ".docx"
 
