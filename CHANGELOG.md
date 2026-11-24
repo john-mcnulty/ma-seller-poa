@@ -3,6 +3,14 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.1.2 — scanned PDFs (unreleased)
+
+- **New `render_pages.py`** renders PDF pages to images for reading scanned pages (PyMuPDF first,
+  poppler's `pdftoppm` as a fallback), writing only to a temporary folder. SKILL.md now names it
+  wherever it says to render scanned pages; before, Claude reached for `pdftoppm`, which a
+  Windows machine usually doesn't have. The doctor checks it ("Page images for scanned PDFs").
+- The doctor finds LibreOffice's version on Windows more reliably.
+
 ## 0.1.1 — fixes from the first live runs on Windows (unreleased)
 
 - **No more console window.** On Windows, `soffice.exe --version` opens a console that waits for

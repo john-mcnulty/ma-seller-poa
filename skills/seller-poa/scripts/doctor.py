@@ -3,7 +3,8 @@
 
     python doctor.py [SETTING FLAGS as for firm_settings.py --show]
 
-REQUIRED  Python 3.9+; pandoc (reads a Word P&S, verifies each POA); LibreOffice (`soffice`) and a
+REQUIRED  Python 3.9+; pandoc (reads a Word P&S, verifies each POA); page images for scanned PDFs
+          (PyMuPDF, or poppler's `pdftoppm`); LibreOffice (`soffice`) and a
           PDF reader -- the PyMuPDF package (`pip install pymupdf`, preferred) OR poppler's
           `pdftotext` (another program named pdftotext, e.g. xpdf's, does not work) --
           which together render each POA so the signature page can be laid out (caption,
@@ -14,7 +15,7 @@ OPTIONAL  Pillow (exact name-width fitting in signature lines), the Times New Ro
           Serif fonts (used to measure names).
 SETTINGS  attorney_in_fact must be set (see firm_settings.py).
 
-Exit 0 when ready; 2 when only the layout tools (LibreOffice / PDF reader) are missing; 1 otherwise.
+Exit 0 when ready; 2 when only the layout or page-image tools are missing; 1 otherwise.
 Sends nothing over the network.
 """
 import sys as _sys
@@ -60,10 +61,11 @@ def soffice_version(path):
     """LibreOffice's version WITHOUT running it: on Windows `soffice.exe --version` opens a console
     window that waits for Enter. Read it from the install's version file instead."""
     prog = os.path.dirname(os.path.realpath(path))
-    for name, key in (("version.ini", "MsiProductVersion="), ("versionrc", "ProductVersion=")):
+    for name, key in (("version.ini", "MsiProductVersion="), ("version.ini", "ProductVersion="),
+                      ("versionrc", "ProductVersion="), ("versionrc", "MsiProductVersion=")):
         f = os.path.join(prog, name)
         if os.path.isfile(f):
-            for line in open(f, encoding="utf-8", errors="replace"):
+            for line in open(f, encoding="utf-8-sig", errors="replace"):
                 if line.startswith(key):
                     return "LibreOffice " + line.split("=", 1)[1].strip() + " (" + path + ")"
     return "found at " + path
@@ -90,6 +92,12 @@ def main():
     layout_ok &= bool(rd)
     rows.append(("REQUIRED", "PDF reader (PyMuPDF or poppler pdftotext)", bool(rd),
                  rd if rd else "NOT USABLE -- " + pdf_reader_problem()))
+
+    from render_pages import renderer
+    rr = renderer()
+    scans_ok = bool(rr)
+    rows.append(("REQUIRED", "Page images for scanned PDFs", bool(rr),
+                 rr if rr else "NOT FOUND -- " + INSTALL["pdfreader"]))
 
     try:
         import PIL  # noqa: F401
@@ -125,9 +133,13 @@ def main():
         print(f"  {mark:8} {tier:12} {name:36} {detail}")
     for w in st["warnings"]:
         print(f"  warning: {w}")
-    ready = required_ok and settings_ok and layout_ok
+    ready = required_ok and settings_ok and layout_ok and scans_ok
     if ready:
         print("\nREADY")
+    elif required_ok and settings_ok and layout_ok:
+        print("\nNOT READY (scanned PDFs) -- nothing can turn PDF pages into images, so a scanned P&S, "
+              "deed or amendment cannot be read. Text PDFs and Word files still work. Install "
+              "PyMuPDF: python -m pip install pymupdf")
     elif required_ok and settings_ok:
         print("\nNOT READY (layout) -- LibreOffice or the PDF reader is missing. POAs can still be "
               "built, but without the signature-page layout: ask the user whether to install it "

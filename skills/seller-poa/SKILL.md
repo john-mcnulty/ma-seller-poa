@@ -45,6 +45,8 @@ the doctor says so) — plus the optional Pillow and fonts, and the firm setting
   signature-page caption, no page-break notice, and no check that the signature section fits —
   the user must check the layout in Word. Ask whether to install first or go on; if they go on,
   repeat that warning in Step 5.
+- `NOT READY (scanned PDFs)` → nothing can turn PDF pages into images. Tell the user (install
+  PyMuPDF). Text PDFs and Word files still work; stop only if a document you need is scanned.
 - `NOT READY` → a required item or the attorney-in-fact setting is missing: tell the user what to
   install or set (the README has the commands) and stop until it is fixed (for the setting, see
   below).
@@ -128,8 +130,17 @@ isn't available).
 
 - **Both in the folder?** If the client folder (see "The client folder" below) has a signed PDF
   **and** a Word version of the P&S, use the **signed PDF** and mention the Word file was not used.
-- **PDF** — read it with the `Read` tool (in chunks if long). Scanned pages: render them to
-  images and read them.
+- **PDF** — read it with the `Read` tool (in chunks if long). **Scanned pages** (or a page whose
+  text comes out empty or garbled): render them to images with the bundled script and read the
+  images — do not reach for `pdftoppm` or other tools, which may not be installed:
+
+  ```bash
+  python "[SKILL_BASE_DIR]/scripts/render_pages.py" "[PDF path]" --pages 1-3
+  ```
+
+  It prints one PNG path per page (in a temporary folder — never in the client folder); read each
+  with the `Read` tool. Leave out `--pages` for every page. "Render scanned pages to images"
+  everywhere below means this script.
 - **Word `.docx`** — extract the text with pandoc, keeping tables (the parties, price, and
   signature blocks are often in tables):
 
@@ -1158,6 +1169,7 @@ it is signed. Do not describe it as final or as legal advice.
 | Script | Role |
 |---|---|
 | `doctor.py` | Checks the requirements and the firm settings |
+| `render_pages.py` | Renders PDF pages to PNG images, for reading scanned pages |
 | `firm_settings.py` | Reads the firm settings; builds the notary location options; matches a typed firm location |
 | `build_all_poas.py` | Builds and checks every POA for one P&S (Step 4) — the only builder you run |
 | `build_individual_poa.py`, `build_entity_poa.py`, `build_trustee_poa.py`, `build_estate_poa.py` | One builder per seller type (run by `build_all_poas.py`) |
