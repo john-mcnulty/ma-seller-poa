@@ -116,7 +116,8 @@ claude plugin install ma-seller-poa@ma-seller-poa \
 Then run the doctor (above), and use it: *"Prepare the seller POA from the P&S in this folder."*
 or `/ma-seller-poa:seller-poa`.
 
-To update later, run both commands, then restart Claude Code:
+To update later, run both commands, then restart Claude Code (check the installed version with
+`claude plugin list`; see `CHANGELOG.md` for what changed):
 
 ```
 claude plugin marketplace update ma-seller-poa
@@ -180,8 +181,10 @@ In `firm-settings.json` (skill-only installs) the same list can be written as ob
 ]
 ```
 
-Settings are read in this order: the plugin setting → the JSON file named by the
-`SELLER_POA_SETTINGS` environment variable → `skills/seller-poa/firm-settings.json` → the default.
+Settings are read in this order: the plugin setting filled into the skill → the plugin settings
+Claude Code saved at install (`pluginConfigs` in `~/.claude/settings.json`, read directly) → the JSON
+file named by the `SELLER_POA_SETTINGS` environment variable → `skills/seller-poa/firm-settings.json`
+→ the default. The doctor's "settings came from" line shows which one each value came from.
 
 ---
 

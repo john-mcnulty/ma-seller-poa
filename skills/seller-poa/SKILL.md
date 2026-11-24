@@ -65,8 +65,11 @@ python "[SKILL_BASE_DIR]/scripts/firm_settings.py" --show \
 In a plugin install the four values are the user's plugin settings, filled in above. **If a value
 still reads as a literal `${user_config…}` placeholder** (the skill was installed on its own, or
 the setting was never set), pass an empty string `""` for that flag instead — a shell rejects the
-placeholder text. The script then uses `[SKILL_BASE_DIR]/firm-settings.json` (or the file named by
-the `SELLER_POA_SETTINGS` environment variable), and the defaults below. Do the same in every
+placeholder text. The script then reads the plugin settings that Claude Code saved at install
+(`pluginConfigs` in `~/.claude/settings.json`), then `[SKILL_BASE_DIR]/firm-settings.json` (or the
+file named by the `SELLER_POA_SETTINGS` environment variable), then the defaults below. So
+**never ask the user for a setting the script found**: check `errors` and `sources` in its output
+first. Do the same in every
 command in this file that passes these flags. Use `python3` wherever `python` is not available.
 
 | Setting | What it is | Default |

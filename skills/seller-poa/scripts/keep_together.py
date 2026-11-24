@@ -233,17 +233,20 @@ def find_soffice():
     return None
 
 
+NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}   # CREATE_NO_WINDOW
+
+
 def render(docx, soffice):
     """Return (pages_text, pages_words): per page, the joined text and a list of (yMin, yMax, word)."""
     out = tempfile.mkdtemp()
-    subprocess.run([soffice, "--headless", "--convert-to", "pdf", "--outdir", out, docx],
-                   check=True, capture_output=True, timeout=180)
+    subprocess.run([soffice, "--headless", "--norestore", "--convert-to", "pdf", "--outdir", out, docx],
+                   check=True, capture_output=True, timeout=180, **NO_WINDOW)
     pdf = os.path.join(out, os.path.splitext(os.path.basename(docx))[0] + ".pdf")
     if pdf_reader() == "pymupdf":
         return render_pymupdf(pdf)
     try:
         html = subprocess.run(["pdftotext", "-bbox", pdf, "-"], capture_output=True, text=True,
-                              check=True).stdout
+                              check=True, timeout=120, **NO_WINDOW).stdout
     except (subprocess.CalledProcessError, OSError):
         if _have_pymupdf():                 # a pdftotext that passed the check but still failed
             return render_pymupdf(pdf)
@@ -277,7 +280,7 @@ def pdftotext_has_bbox():
         return False
     if exe not in _BBOX_OK:
         try:
-            r = subprocess.run([exe, "-h"], capture_output=True, text=True, timeout=30)
+            r = subprocess.run([exe, "-h"], capture_output=True, text=True, timeout=30, **NO_WINDOW)
             _BBOX_OK[exe] = "-bbox" in (r.stdout + r.stderr)
         except Exception:
             _BBOX_OK[exe] = False
@@ -380,58 +383,71 @@ def main():
                   "-- no signature-page caption or notice added; check the layout in Word")
         return
 
-    prev = previous_text(xml)
-    if n_sections > 1:
-        return counterparts_main(xml, address, prev, path, soffice, save, a.mode)
-    if a.mode == "same":
-        pages, _ = render(path, soffice)
-        p_start, p_end = page_index(pages, START), page_index(pages, end)
-        p_prev = page_index(pages, prev, last=True) if prev else p_start
-        if p_start is None or p_end is None:
-            print("KEEP-TOGETHER: keep-with-next set; could not locate the section in the rendered PDF")
-            return
-        if p_start == p_end and (p_prev is None or p_prev == p_start):
-            print(f"KEEP-TOGETHER: same-page mode -- section fits on page {p_start + 1}; no page break needed")
-            return
+    def layout():
+        prev = previous_text(xml)
+        if n_sections > 1:
+            return counterparts_main(xml, address, prev, path, soffice, save, a.mode)
+        if a.mode == "same":
+            pages, _ = render(path, soffice)
+            p_start, p_end = page_index(pages, START), page_index(pages, end)
+            p_prev = page_index(pages, prev, last=True) if prev else p_start
+            if p_start is None or p_end is None:
+                print("KEEP-TOGETHER: keep-with-next set; could not locate the section in the rendered PDF")
+                return
+            if p_start == p_end and (p_prev is None or p_prev == p_start):
+                print(f"KEEP-TOGETHER: same-page mode -- section fits on page {p_start + 1}; no page break needed")
+                return
 
-    # The section goes on its own page: caption + page break, then decide on the notice.
-    assert address, "could not read the property address for the caption -- pass --address"
-    xml2 = mark(add_caption(xml, address), page_break=True)
-    save(xml2)
-    pages, words = render(path, soffice)
-    p_prev = page_index(pages, prev, last=True) if prev else None
-    space = blank_space_pt(words[p_prev], usable_bottom_pt(xml)) if p_prev is not None else 0.0
-    notice = space >= NOTICE_MIN_PT
-    off = None
-    if notice:
-        # Place the notice, measure where it landed, then correct the space above it so its
-        # center sits one-quarter of the way from the last line of text to the bottom margin.
-        bottom = usable_bottom_pt(xml)
-        target = (bottom - space) + space / 4.0     # one-quarter of the way down the empty space
-        before = space / 4.0 - 2 * LINE_PT          # first guess (a blank line already precedes it)
-        for _ in range(3):
-            xml2 = mark(add_notice(add_caption(xml, address), before), page_break=True)
-            save(xml2)
-            pages, words = render(path, soffice)
-            c = notice_center(words, p_prev)
-            if c is None:                            # pushed off the page -- back off
-                before = max(0.0, before - LINE_PT)
-                continue
-            off = target - c
-            if abs(off) <= 3:
-                break
-            before = max(0.0, before + off)
-    p_cap = page_index(pages, CAPTION_START)
-    p_end = page_index(pages, end)
-    p_prev = page_index(pages, prev, last=True) if prev else None
-    ok = p_cap is not None and p_cap == p_end and (p_prev is None or p_prev < p_cap)
-    why = "separate-page mode" if a.mode == "separate" else "section did not fit"
-    note = (f"notice added, 1/4 down ({space / 72:.1f}\" blank"
-            + (f"; {abs(off):.0f}pt off target" if off is not None and abs(off) > 3 else "") + ")" if notice
-            else f"no notice ({space / 72:.1f}\" blank, under 1.5\")")
-    print(f"KEEP-TOGETHER: {why} -- signature page is page {p_cap + 1 if p_cap is not None else '?'} with caption; "
-          f"{note} ({'OK' if ok else 'CHECK LAYOUT MANUALLY'})")
+        # The section goes on its own page: caption + page break, then decide on the notice.
+        assert address, "could not read the property address for the caption -- pass --address"
+        xml2 = mark(add_caption(xml, address), page_break=True)
+        save(xml2)
+        pages, words = render(path, soffice)
+        p_prev = page_index(pages, prev, last=True) if prev else None
+        space = blank_space_pt(words[p_prev], usable_bottom_pt(xml)) if p_prev is not None else 0.0
+        notice = space >= NOTICE_MIN_PT
+        off = None
+        if notice:
+            # Place the notice, measure where it landed, then correct the space above it so its
+            # center sits one-quarter of the way from the last line of text to the bottom margin.
+            bottom = usable_bottom_pt(xml)
+            target = (bottom - space) + space / 4.0     # one-quarter of the way down the empty space
+            before = space / 4.0 - 2 * LINE_PT          # first guess (a blank line already precedes it)
+            for _ in range(3):
+                xml2 = mark(add_notice(add_caption(xml, address), before), page_break=True)
+                save(xml2)
+                pages, words = render(path, soffice)
+                c = notice_center(words, p_prev)
+                if c is None:                            # pushed off the page -- back off
+                    before = max(0.0, before - LINE_PT)
+                    continue
+                off = target - c
+                if abs(off) <= 3:
+                    break
+                before = max(0.0, before + off)
+        p_cap = page_index(pages, CAPTION_START)
+        p_end = page_index(pages, end)
+        p_prev = page_index(pages, prev, last=True) if prev else None
+        ok = p_cap is not None and p_cap == p_end and (p_prev is None or p_prev < p_cap)
+        why = "separate-page mode" if a.mode == "separate" else "section did not fit"
+        note = (f"notice added, 1/4 down ({space / 72:.1f}\" blank"
+                + (f"; {abs(off):.0f}pt off target" if off is not None and abs(off) > 3 else "") + ")" if notice
+                else f"no notice ({space / 72:.1f}\" blank, under 1.5\")")
+        print(f"KEEP-TOGETHER: {why} -- signature page is page {p_cap + 1 if p_cap is not None else '?'} with caption; "
+              f"{note} ({'OK' if ok else 'CHECK LAYOUT MANUALLY'})")
 
+
+    # A layout failure (LibreOffice or the PDF reader erroring or timing out) must not stop the
+    # build: fall back to keep-with-next only, say so, and let the POA be saved.
+    try:
+        return layout()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as e:
+        save(plain)
+        detail = (getattr(e, "stderr", None) or b"")
+        detail = (detail.decode("utf-8", "replace") if isinstance(detail, bytes) else str(detail)).strip()
+        print(f"KEEP-TOGETHER: keep-with-next set; the layout check could not run "
+              f"({type(e).__name__}{': ' + detail.splitlines()[-1][:120] if detail else ''}) -- no "
+              "signature-page caption or notice added; check the layout in Word")
 
 def place_notice(build, xml, prev, path, soffice, save):
     """Render BUILD(None); if the page where the text ends has 1.5" or more of blank space, add the

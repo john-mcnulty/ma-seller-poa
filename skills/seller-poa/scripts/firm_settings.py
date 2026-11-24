@@ -15,10 +15,12 @@ WHERE EACH VALUE COMES FROM, in this order (the first usable one wins):
   1. the flag -- in a Claude Code plugin install, SKILL.md fills it from the plugin settings
      (`${user_config.*}`). A value that is empty, or that is still a literal placeholder because
      the setting was never set, counts as missing;
-  2. the JSON file named by the SELLER_POA_SETTINGS environment variable, if set;
-  3. firm-settings.json in the skill folder (next to SKILL.md) -- the place to put the firm's
+  2. the plugin settings as Claude Code saved them (`pluginConfigs` in ~/.claude/settings.json),
+     read directly -- the same values as 1, for when they were not filled into SKILL.md;
+  3. the JSON file named by the SELLER_POA_SETTINGS environment variable, if set;
+  4. firm-settings.json in the skill folder (next to SKILL.md) -- the place to put the firm's
      values when the skill is uploaded on its own (e.g. a ZIP added to Claude in the browser);
-  4. the built-in default -- EXCEPT attorney_in_fact, which has no default: every POA appoints
+  5. the built-in default -- EXCEPT attorney_in_fact, which has no default: every POA appoints
      that person, so it must be chosen by the firm. Without it --show reports an error and
      build_all_poas.py refuses to build.
 
@@ -69,8 +71,30 @@ def load_json(path):
     return {}
 
 
+PLUGIN_NAME = "ma-seller-poa"
+OPTION_KEYS = {"attorney_in_fact": "attorney_in_fact", "signing_locations": "signing_locations",
+               "signature_page": "signature_page", "notary_state": "default_notary_state"}
+
+
+def claude_code_plugin_config():
+    """The plugin settings as Claude Code saved them at install (`pluginConfigs` in the user's
+    settings.json), read directly -- so the settings work even when Claude Code did not
+    substitute ${user_config.*} into SKILL.md. Returns {setting: value} or {}."""
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    for name in ("settings.json", "settings.local.json"):
+        try:
+            data = load_json(os.path.join(base, name))
+        except (OSError, ValueError):
+            continue
+        for key, entry in (data.get("pluginConfigs") or {}).items():
+            if key == PLUGIN_NAME or key.startswith(PLUGIN_NAME + "@"):
+                opts = (entry or {}).get("options") or {}
+                return {k: opts[o] for k, o in OPTION_KEYS.items() if o in opts}
+    return {}
+
+
 def file_sources():
-    out = []
+    out = [("Claude Code plugin settings (settings.json)", claude_code_plugin_config())]
     env = os.environ.get("SELLER_POA_SETTINGS")
     if env:
         out.append(("SELLER_POA_SETTINGS file", load_json(env)))

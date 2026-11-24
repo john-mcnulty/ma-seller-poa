@@ -44,12 +44,29 @@ def find_soffice():
     return None
 
 
+NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}   # CREATE_NO_WINDOW
+
+
 def version(cmd):
     try:
-        out = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=60).stdout
+        out = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=60,
+                             **NO_WINDOW).stdout
         return (out.strip().splitlines() or [""])[0][:60]
     except Exception:
         return "found"
+
+
+def soffice_version(path):
+    """LibreOffice's version WITHOUT running it: on Windows `soffice.exe --version` opens a console
+    window that waits for Enter. Read it from the install's version file instead."""
+    prog = os.path.dirname(os.path.realpath(path))
+    for name, key in (("version.ini", "MsiProductVersion="), ("versionrc", "ProductVersion=")):
+        f = os.path.join(prog, name)
+        if os.path.isfile(f):
+            for line in open(f, encoding="utf-8", errors="replace"):
+                if line.startswith(key):
+                    return "LibreOffice " + line.split("=", 1)[1].strip() + " (" + path + ")"
+    return "found at " + path
 
 
 def main():
@@ -66,7 +83,7 @@ def main():
     so = find_soffice()
     layout_ok = bool(so)
     rows.append(("REQUIRED", "LibreOffice (soffice)", bool(so),
-                 version(so) if so else "NOT FOUND -- " + INSTALL["soffice"]))
+                 soffice_version(so) if so else "NOT FOUND -- " + INSTALL["soffice"]))
 
     from keep_together import pdf_reader, pdf_reader_problem
     rd = pdf_reader()
@@ -100,6 +117,8 @@ def main():
                  "; ".join(f"{l['label']} = {l['county'] or '(blank)'}, {l['state']}"
                            for l in st["signing_locations"]) or "none set (the user types the place)"))
     rows.append(("info", "signature page", True, st["signature_page"]))
+    rows.append(("info", "settings came from", True,
+                 "; ".join(f"{k} <- {v}" for k, v in st["sources"].items())))
 
     for tier, name, ok, detail in rows:
         mark = "ok  " if ok else ("MISSING" if tier == "REQUIRED" else "--  ")

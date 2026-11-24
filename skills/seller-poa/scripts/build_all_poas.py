@@ -283,7 +283,8 @@ def appointments_summary(shared, principals):
 
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=HERE)
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=HERE,
+                       **({"creationflags": 0x08000000} if os.name == "nt" else {}))
     out = (r.stdout + r.stderr).strip()
     return r.returncode, out
 

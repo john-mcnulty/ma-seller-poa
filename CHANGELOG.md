@@ -3,6 +3,25 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.1.1 — fixes from the first live runs on Windows (unreleased)
+
+- **No more console window.** On Windows, `soffice.exe --version` opens a console that waits for
+  Enter; `doctor.py` now reads LibreOffice's version from its install folder instead of running
+  it, and every helper program (LibreOffice, pdftotext, pandoc, the builders) is started without
+  a window.
+- **A layout failure no longer stops the build.** If LibreOffice or the PDF reader errors or times
+  out, the POA is still saved with the signature section kept together, and the message says the
+  caption / notice were not added and the layout should be checked in Word.
+- **PDF reader:** PyMuPDF is used first when installed; a `pdftotext` is used only if it supports
+  `-bbox` (poppler's). The `pdftotext` bundled with Git for Windows does not, and made the layout
+  step fail; it is now detected, reported by the doctor, and skipped.
+- **Firm settings read directly.** In a live run the attorney in fact was not filled into the
+  skill even though the plugin settings were saved, so the skill asked for the name.
+  `firm_settings.py` now also reads the saved plugin settings (`pluginConfigs` in
+  `~/.claude/settings.json`); the doctor shows where each value came from.
+- The version number is bumped on every change from now on: Claude Code installs an update only
+  when the version changes.
+
 ## 0.1.0 — first public release (unreleased)
 
 - Published as the plugin **ma-seller-poa** (marketplace `ma-seller-poa`); the skill inside is
@@ -30,10 +49,6 @@ Prepared for publication from the author's private working skill.
 - **`doctor.py`** checks the required tools (Python, pandoc, LibreOffice, a PDF reader) and the
   settings. `keep_together.py` can read the rendered page with PyMuPDF when poppler's
   `pdftotext` is not installed (identical results on the whole test suite).
-- **PDF reader:** PyMuPDF is used first when installed; a `pdftotext` is used only if it
-  supports `-bbox` (poppler's). Another program named `pdftotext` (e.g. the xpdf build bundled
-  with some Windows tools) made the layout step fail; it is now detected, reported by the doctor,
-  and skipped. Found in the first live run on Windows.
 - `build_all_poas.py` accepts relative paths for the assets, values file, and output folder.
 - **Templates rebuilt** with placeholder sample text and empty document properties.
 - **Regression suite** (`tests/`): 45 fictional scenarios with expected text, plus a test that
