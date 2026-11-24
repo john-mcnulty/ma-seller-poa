@@ -3,6 +3,15 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.2.1 — no blank page after a full one-page POA
+
+- **A POA that fits on one page no longer gets a blank second page.** The empty paragraphs after
+  the notary block (the template's spacer and the closing paragraph) spilled onto a page 2 when
+  the text filled page 1 almost to the bottom (found in a live Cowork run; Word showed 2 pages).
+  `keep_together.py` now removes them before the page-fit check; the text is unchanged.
+- Tests: a new scenario that fills page 1 (`ind_2_sellers_full_page`, at most one page), and
+  every POA in every scenario is now rendered and fails on any blank page.
+
 ## 0.2.0 — Cowork-first: firm settings that persist (unreleased)
 
 - **The firm settings are asked once and saved.** Cowork (and a skill installed on its own) has

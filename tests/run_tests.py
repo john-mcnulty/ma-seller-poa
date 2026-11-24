@@ -9,7 +9,8 @@ Each scenario in tests/scenarios/ is a poa_values.json (the file the skill write
 a "_test" entry: {"mode": "same"|"separate", "expect": "OK"|"STOPPED"}. The runner builds it with
 build_all_poas.py into a temporary folder, converts every POA to plain text with pandoc, and
 compares the text with tests/expected/<scenario>/. Error scenarios must stop with nothing saved.
-It then runs the firm settings file checks in tests/test_firm_settings.py ("settings_*").
+Every POA built is also rendered and must have no blank page ("max_pages" in "_test" caps the
+page count). It then runs the firm settings file checks in tests/test_firm_settings.py ("settings_*").
 
 Requirements: Python 3, pandoc. LibreOffice is optional here: without it keep_together.py cannot
 render the page layout, so the page-break caption and notice differ. Expected files are
@@ -71,6 +72,23 @@ def normalize(text):
             continue
         out.append(" ".join(line.split()))
     return "\n".join(out)
+
+
+def page_texts(p):
+    """The text of each rendered page (LibreOffice + the skill's own PDF reader)."""
+    from keep_together import find_soffice, render
+    return render(p, find_soffice())[0]
+
+
+def page_problem(path, meta):
+    """A blank page anywhere, or more pages than the scenario's max_pages."""
+    pages = page_texts(path)
+    blank = [i + 1 for i, t in enumerate(pages) if not t.strip()]
+    if blank:
+        return f"blank page(s) {blank} of {len(pages)} in {os.path.basename(path)}"
+    if meta.get("max_pages") and len(pages) > meta["max_pages"]:
+        return f"{len(pages)} pages, expected at most {meta['max_pages']} in {os.path.basename(path)}"
+    return None
 
 
 def docx_text(p):
@@ -135,6 +153,9 @@ def main():
                         if normalize(got) != normalize(exp):
                             problem = f"text differs in {f}"
                             break
+            # no blank page (e.g. empty paragraphs spilling past a full page 1), page limit
+            for f in built:
+                problem = problem or page_problem(os.path.join(out, f), meta)
             # determinism + no-overwrite: a second run into the same folder must stop
             if not problem:
                 _, r2 = run_scenario(os.path.join(HERE, "scenarios", name + ".json"),

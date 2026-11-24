@@ -263,7 +263,7 @@ the JSON file named by the `SELLER_POA_SETTINGS` environment variable → `skill
 ## Development
 
 ```bash
-python tests/run_tests.py          # 45 fictional scenarios + 9 settings-file checks
+python tests/run_tests.py          # 46 fictional scenarios + 9 settings-file checks
 python tests/test_firm_settings.py # the settings-file checks on their own
 python tests/test_scrub_gate.py    # proves the commit gate blocks what it claims to
 python scripts/scrub_check.py      # the commit gate

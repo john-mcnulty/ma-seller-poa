@@ -25,6 +25,8 @@ Usage: python keep_together.py POA.docx [--mode same|separate] [--address "123 S
      on the page where the body text ends.
    With no page break, the caption and notice (and any "{{Page Break Language}}" placeholder)
    are removed. Safe to run again on its own output.
+0. First, the empty paragraphs after the last notary block are removed: nothing follows the
+   notary block, and when the POA fills page 1 they spilled onto a blank page 2.
 The .docx is updated in place. Prints a one-line result.
 """
 import sys as _sys
@@ -141,6 +143,39 @@ def strip_added(xml):
         out.append(p)
     out.append(xml[pos:])
     return "".join(out)
+
+
+KEEP_IN_EMPTY = ("<w:sectPr", "<w:drawing", "<w:pict", "<w:object", "<w:fldChar", "<w:instrText",
+                 'w:type="page"', "<w:tbl")
+
+
+def strip_trailing_blank(xml):
+    """Remove the empty paragraphs after the LAST notary block (the template's spacer and the
+    document's closing paragraph). Nothing follows the notary block, so they only take room:
+    when the POA fills page 1, they spill onto a blank page 2. The notary paragraph then ends
+    the body, which is valid (the body's last element must be a paragraph, and it is one).
+    An empty paragraph that carries anything else (a section break, a drawing, a field, a page
+    break) is kept."""
+    i = max(xml.rfind(END), xml.rfind(END_ALT))
+    if i < 0:
+        return xml
+    e = xml.find("</w:p>", i)
+    if e < 0:
+        return xml
+    e += len("</w:p>")
+    stop = [j for j in (xml.find("<w:sectPr", e), xml.find("</w:body>", e)) if j >= 0]
+    stop = min(stop) if stop else len(xml)
+    # a body-level sectPr may sit inside the last paragraph's pPr: keep that paragraph
+    tail = xml[e:stop]
+    kept, pos = [], 0
+    for m in re.finditer(PARA, tail, re.S):
+        p = m.group(0)
+        kept.append(tail[pos:m.start()])
+        pos = m.end()
+        if para_text(p).strip() or any(k in p for k in KEEP_IN_EMPTY):
+            kept.append(p)
+    kept.append(tail[pos:])
+    return xml[:e] + "".join(kept) + xml[stop:]
 
 
 def _p(text, italic=False, center=False, before_pt=None):
@@ -365,7 +400,7 @@ def main():
     with zipfile.ZipFile(path) as z:
         z.extractall(work)
     docxml = os.path.join(work, "word", "document.xml")
-    xml = strip_added(open(docxml, encoding="utf-8").read())
+    xml = strip_trailing_blank(strip_added(open(docxml, encoding="utf-8").read()))
     address = a.address or opening_address(xml)
     end = END if END in xml else END_ALT
 

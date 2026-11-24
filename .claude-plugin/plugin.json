@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "ma-seller-poa",
   "displayName": "MA Seller POA",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Drafts a Massachusetts Seller's Limited Power of Attorney (.docx) from a Purchase and Sale Agreement: individual, entity, trustee, and probate estate sellers. A drafting aid for attorney review; not legal advice.",
   "author": {
     "name": "John McNulty",
