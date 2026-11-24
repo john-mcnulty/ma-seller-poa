@@ -18,7 +18,9 @@ be, so the skill itself stays lean.
   in `sources`; the doctor shows it.
 - Claude Code is unchanged: plugin settings still win over the file.
 - README: "Use it in Cowork (recommended)" comes first; Cowork needs nothing installed.
-- CI: the regression suite also runs on Windows; every job has a 30-minute limit.
+- CI: the regression suite also runs on Windows; every job has a 30-minute limit. The Windows
+  install step retries Chocolatey (its feed can answer 503) and fails at once if pandoc or
+  LibreOffice is still missing.
 - Tests: 9 settings-file checks (read, save, refusals, precedence, nothing set still asks).
   **The runner now finds LibreOffice in its Windows install folder**: on Windows it used to look
   only on the PATH, so it silently skipped the text comparison. All 45 scenarios now compare

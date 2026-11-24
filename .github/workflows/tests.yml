@@ -52,7 +52,15 @@ jobs:
       - name: Install pandoc, LibreOffice, PyMuPDF
         shell: pwsh
         run: |
-          choco install pandoc libreoffice-fresh -y --no-progress
+          # The Chocolatey feed sometimes answers 503; retry, and fail this step (not a later one)
+          # if either program is still missing -- choco's own failure does not stop pwsh.
+          foreach ($attempt in 1..3) {
+            choco install pandoc libreoffice-fresh -y --no-progress
+            if ((Test-Path "C:\Program Files\Pandoc\pandoc.exe") -and
+                (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe")) { break }
+            if ($attempt -eq 3) { throw "pandoc or LibreOffice did not install (Chocolatey feed down?)" }
+            Start-Sleep -Seconds (60 * $attempt)
+          }
           "C:\Program Files\Pandoc" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           "C:\Program Files\LibreOffice\program" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           python -m pip install --quiet pymupdf Pillow
