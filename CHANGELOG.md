@@ -30,6 +30,10 @@ Prepared for publication from the author's private working skill.
 - **`doctor.py`** checks the required tools (Python, pandoc, LibreOffice, a PDF reader) and the
   settings. `keep_together.py` can read the rendered page with PyMuPDF when poppler's
   `pdftotext` is not installed (identical results on the whole test suite).
+- **PDF reader:** PyMuPDF is used first when installed; a `pdftotext` is used only if it
+  supports `-bbox` (poppler's). Another program named `pdftotext` (e.g. the xpdf build bundled
+  with some Windows tools) made the layout step fail; it is now detected, reported by the doctor,
+  and skipped. Found in the first live run on Windows.
 - `build_all_poas.py` accepts relative paths for the assets, values file, and output folder.
 - **Templates rebuilt** with placeholder sample text and empty document properties.
 - **Regression suite** (`tests/`): 45 fictional scenarios with expected text, plus a test that

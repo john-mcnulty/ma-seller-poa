@@ -35,8 +35,9 @@ python "[SKILL_BASE_DIR]/scripts/doctor.py" \
 ```
 
 It checks the **required** tools — Python 3.9+, **pandoc** (reads a Word P&S and verifies each
-POA), **LibreOffice** (`soffice`), and a **PDF reader** (poppler's `pdftotext`, or the PyMuPDF
-package) — plus the optional Pillow and fonts, and the firm settings below. Its last line says:
+POA), **LibreOffice** (`soffice`), and a **PDF reader** (the PyMuPDF package, or poppler's
+`pdftotext` — another program named `pdftotext` without the `-bbox` option does not count, and
+the doctor says so) — plus the optional Pillow and fonts, and the firm settings below. Its last line says:
 
 - `READY` → go on.
 - `NOT READY (layout)` → LibreOffice or the PDF reader is missing. Tell the user, with the install

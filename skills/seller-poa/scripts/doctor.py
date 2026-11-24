@@ -4,7 +4,8 @@
     python doctor.py [SETTING FLAGS as for firm_settings.py --show]
 
 REQUIRED  Python 3.9+; pandoc (reads a Word P&S, verifies each POA); LibreOffice (`soffice`) and a
-          PDF reader -- poppler's `pdftotext` OR the PyMuPDF package (`pip install pymupdf`) --
+          PDF reader -- the PyMuPDF package (`pip install pymupdf`, preferred) OR poppler's
+          `pdftotext` (another program named pdftotext, e.g. xpdf's, does not work) --
           which together render each POA so the signature page can be laid out (caption,
           page-break notice). Without the last two the POAs are still built, but the signature
           section is only marked keep-together and the layout must be checked by hand in Word;
@@ -67,11 +68,11 @@ def main():
     rows.append(("REQUIRED", "LibreOffice (soffice)", bool(so),
                  version(so) if so else "NOT FOUND -- " + INSTALL["soffice"]))
 
-    from keep_together import pdf_reader
+    from keep_together import pdf_reader, pdf_reader_problem
     rd = pdf_reader()
     layout_ok &= bool(rd)
-    rows.append(("REQUIRED", "PDF reader (pdftotext or PyMuPDF)", bool(rd),
-                 rd if rd else "NOT FOUND -- " + INSTALL["pdfreader"]))
+    rows.append(("REQUIRED", "PDF reader (PyMuPDF or poppler pdftotext)", bool(rd),
+                 rd if rd else "NOT USABLE -- " + pdf_reader_problem()))
 
     try:
         import PIL  # noqa: F401

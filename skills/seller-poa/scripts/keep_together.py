@@ -239,9 +239,15 @@ def render(docx, soffice):
     subprocess.run([soffice, "--headless", "--convert-to", "pdf", "--outdir", out, docx],
                    check=True, capture_output=True, timeout=180)
     pdf = os.path.join(out, os.path.splitext(os.path.basename(docx))[0] + ".pdf")
-    if not shutil.which("pdftotext"):
+    if pdf_reader() == "pymupdf":
         return render_pymupdf(pdf)
-    html = subprocess.run(["pdftotext", "-bbox", pdf, "-"], capture_output=True, text=True, check=True).stdout
+    try:
+        html = subprocess.run(["pdftotext", "-bbox", pdf, "-"], capture_output=True, text=True,
+                              check=True).stdout
+    except (subprocess.CalledProcessError, OSError):
+        if _have_pymupdf():                 # a pdftotext that passed the check but still failed
+            return render_pymupdf(pdf)
+        raise
     pages_text, pages_words = [], []
     for pg in re.findall(r"<page [^>]*>(.*?)</page>", html, re.S):
         words = [(float(y0), float(y1), w) for y0, y1, w in
@@ -251,16 +257,53 @@ def render(docx, soffice):
     return pages_text, pages_words
 
 
-def pdf_reader():
-    """The PDF word reader keep_together.py can use: 'pdftotext' (poppler) or 'pymupdf'
-    (pip install pymupdf -- the easy route on Windows), or None."""
-    if shutil.which("pdftotext"):
-        return "pdftotext"
+def _have_pymupdf():
     try:
         import pymupdf  # noqa: F401
-        return "pymupdf"
+        return True
     except ImportError:
+        return False
+
+
+_BBOX_OK = {}
+
+
+def pdftotext_has_bbox():
+    """True only for a pdftotext that supports -bbox (poppler's). Other programs named
+    pdftotext -- e.g. the xpdf build bundled with some Windows tools -- do not, and the layout
+    step would fail with them."""
+    exe = shutil.which("pdftotext")
+    if not exe:
+        return False
+    if exe not in _BBOX_OK:
+        try:
+            r = subprocess.run([exe, "-h"], capture_output=True, text=True, timeout=30)
+            _BBOX_OK[exe] = "-bbox" in (r.stdout + r.stderr)
+        except Exception:
+            _BBOX_OK[exe] = False
+    return _BBOX_OK[exe]
+
+
+def pdf_reader():
+    """The PDF word reader keep_together.py will use: 'pymupdf' (pip install pymupdf) when it is
+    installed, else 'pdftotext' when it is poppler's (supports -bbox), else None. PyMuPDF comes
+    first: it is a Python package, so there is no question which program a name on the PATH
+    points to. Both give identical results on the whole test suite."""
+    if _have_pymupdf():
+        return "pymupdf"
+    if pdftotext_has_bbox():
+        return "pdftotext"
+    return None
+
+
+def pdf_reader_problem():
+    """Why there is no usable reader, in words, or None."""
+    if pdf_reader():
         return None
+    if shutil.which("pdftotext"):
+        return (f"the pdftotext found at {shutil.which('pdftotext')} does not support -bbox (it is "
+                "not poppler's) -- install PyMuPDF: python -m pip install pymupdf")
+    return "no PDF reader -- install PyMuPDF: python -m pip install pymupdf"
 
 
 def render_pymupdf(pdf):
@@ -327,14 +370,14 @@ def main():
     save(plain)
     soffice = find_soffice()
     if not soffice or not pdf_reader():
-        missing = " and ".join(x for x, ok in (("LibreOffice", soffice), ("a PDF reader (poppler's "
-                               "pdftotext, or: pip install pymupdf)", pdf_reader())) if not ok)
+        missing = "; ".join(x for x, ok in (("LibreOffice not found", soffice),
+                             (pdf_reader_problem() or "", pdf_reader())) if not ok)
         if a.mode == "separate":
-            print(f"KEEP-TOGETHER: could not render ({missing} not found) -- separate signature page "
+            print(f"KEEP-TOGETHER: could not render ({missing}) -- separate signature page "
                   "NOT set up; check the layout in Word")
         else:
-            print(f"KEEP-TOGETHER: keep-with-next set; could not render to check page fit ({missing} "
-                  "not found) -- no signature-page caption or notice added; check the layout in Word")
+            print(f"KEEP-TOGETHER: keep-with-next set; could not render to check page fit ({missing}) "
+                  "-- no signature-page caption or notice added; check the layout in Word")
         return
 
     prev = previous_text(xml)

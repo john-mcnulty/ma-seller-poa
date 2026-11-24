@@ -18,7 +18,7 @@ attorney in a residential real estate sale.
 | **Required** | **Python 3.9+** | Runs the builders (standard library only) | [python.org](https://www.python.org/downloads/) |
 | **Required** | **pandoc** | Reads a Word P&S; extracts each POA's text to verify it | [pandoc.org/installing](https://pandoc.org/installing.html) — macOS `brew install pandoc` · Windows `winget install JohnMacFarlane.Pandoc` · Debian/Ubuntu `sudo apt install pandoc` |
 | **Required** | **LibreOffice** | Renders each POA so the signature page can be laid out: the EXECUTED line, signatures and notary block kept on one page, the signature-page caption, and the "remainder of page intentionally left blank" notice | [libreoffice.org/download](https://www.libreoffice.org/download/) — macOS `brew install --cask libreoffice` · Windows `winget install TheDocumentFoundation.LibreOffice` · Debian/Ubuntu `sudo apt install libreoffice-writer` |
-| **Required** | **A PDF reader** — poppler's `pdftotext` **or** the PyMuPDF package | Reads where things landed on the rendered page | Any system: `python -m pip install pymupdf` (easiest on Windows) · or poppler: macOS `brew install poppler` · Debian/Ubuntu `sudo apt install poppler-utils` |
+| **Required** | **A PDF reader** — the **PyMuPDF** package (recommended) **or** poppler's `pdftotext` | Reads where things landed on the rendered page | **`python -m pip install pymupdf`** (any system; the simplest choice, especially on Windows) · or poppler: macOS `brew install poppler` · Debian/Ubuntu `sudo apt install poppler-utils`. **Note:** other programs named `pdftotext` (for example the xpdf version bundled with some Windows tools) lack the `-bbox` option and do not work — the skill detects this and uses PyMuPDF instead. |
 | Optional | Pillow | Measures long trust / entity / estate names exactly, to fit them in the signature lines | `python -m pip install Pillow` |
 | Optional | Times New Roman or Liberation Serif fonts | The fonts names are measured in | Usually already installed |
 | Optional | A `docx` skill with `validate.py` | An extra structural check of each finished `.docx` | Claude's built-in docx skill, where available |
@@ -26,7 +26,7 @@ attorney in a residential real estate sale.
 And [Claude Code](https://claude.com/claude-code) (or another Claude surface that can run skills
 with a shell — see [Install](#install)).
 
-**What happens without LibreOffice or the PDF reader?** The POAs are still built and checked, but
+**What happens without LibreOffice or a working PDF reader?** The POAs are still built and checked, but
 the layout step cannot run: the signature section is only marked "keep together" in Word, no
 signature-page caption or page-break notice is added, and nothing confirms the signatures fit on
 the page. The skill tells you this before it builds and asks whether to go on; you would then
