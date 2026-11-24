@@ -16,6 +16,7 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +29,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends pandoc libreoffice-writer poppler-utils fonts-liberation
           python -m pip install --quiet Pillow
+
+      - name: Doctor (required tools; the attorney setting is supplied for the check)
+        run: python skills/seller-poa/scripts/doctor.py --attorney-in-fact "Alex Q. Attorney, Esq."
+
+      - name: Regression suite
+        run: python tests/run_tests.py
+
+  # The same suite on Windows, the system most firms run Claude Code on. LibreOffice and pandoc
+  # are installed with Chocolatey; neither installer puts its folder on the PATH of later steps,
+  # so both are added explicitly (the scripts also look in LibreOffice's install folder).
+  regression-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pandoc, LibreOffice, PyMuPDF
+        shell: pwsh
+        run: |
+          choco install pandoc libreoffice-fresh -y --no-progress
+          "C:\Program Files\Pandoc" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "C:\Program Files\LibreOffice\program" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          python -m pip install --quiet pymupdf Pillow
 
       - name: Doctor (required tools; the attorney setting is supplied for the check)
         run: python skills/seller-poa/scripts/doctor.py --attorney-in-fact "Alex Q. Attorney, Esq."

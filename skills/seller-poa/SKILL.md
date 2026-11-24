@@ -31,10 +31,12 @@ python "[SKILL_BASE_DIR]/scripts/doctor.py" \
   --attorney-in-fact "${user_config.attorney_in_fact}" \
   --signing-locations "${user_config.signing_locations}" \
   --signature-page "${user_config.signature_page}" \
-  --notary-state "${user_config.default_notary_state}"
+  --notary-state "${user_config.default_notary_state}" \
+  --search-from "[P&S folder]"
 ```
 
-It checks the **required** tools — Python 3.9+, **pandoc** (reads a Word P&S and verifies each
+(`[P&S folder]` is the folder that holds the P&S; leave `--search-from` out when the P&S has no
+folder on disk.) It checks the **required** tools — Python 3.9+, **pandoc** (reads a Word P&S and verifies each
 POA), **LibreOffice** (`soffice`), and a **PDF reader** (the PyMuPDF package, or poppler's
 `pdftotext` — another program named `pdftotext` without the `-bbox` option does not count, and
 the doctor says so) — plus the optional Pillow and fonts, and the firm settings below. Its last line says:
@@ -61,18 +63,22 @@ python "[SKILL_BASE_DIR]/scripts/firm_settings.py" --show \
   --attorney-in-fact "${user_config.attorney_in_fact}" \
   --signing-locations "${user_config.signing_locations}" \
   --signature-page "${user_config.signature_page}" \
-  --notary-state "${user_config.default_notary_state}"
+  --notary-state "${user_config.default_notary_state}" \
+  --search-from "[P&S folder]"
 ```
 
-In a plugin install the four values are the user's plugin settings, filled in above. **If a value
-still reads as a literal `${user_config…}` placeholder** (the skill was installed on its own, or
-the setting was never set), pass an empty string `""` for that flag instead — a shell rejects the
-placeholder text. The script then reads the plugin settings that Claude Code saved at install
-(`pluginConfigs` in `~/.claude/settings.json`), then `[SKILL_BASE_DIR]/firm-settings.json` (or the
-file named by the `SELLER_POA_SETTINGS` environment variable), then the defaults below. So
-**never ask the user for a setting the script found**: check `errors` and `sources` in its output
-first. Do the same in every
-command in this file that passes these flags. Use `python3` wherever `python` is not available.
+In a Claude Code plugin install the four values are the user's plugin settings, filled in above.
+**If a value still reads as a literal `${user_config…}` placeholder** (Cowork, a skill installed
+on its own, or a setting never set), pass an empty string `""` for that flag instead — a shell
+rejects the placeholder text. The script then reads, in order: the plugin settings Claude Code
+saved at install (`pluginConfigs` in `~/.claude/settings.json`); the **firm settings file**
+`seller-poa-firm-settings.json`, found from `--search-from` in the P&S folder's parent (the firm's
+Clients folder) or grandparent, or named with `--settings-file PATH`; the file named by the
+`SELLER_POA_SETTINGS` environment variable; `[SKILL_BASE_DIR]/firm-settings.json`; then the
+defaults below. So **never ask the user for a setting the script found**: check `errors`,
+`sources` and `settings_file` in its output first. Pass the same flags, including
+`--search-from`, in every command in this file that reads the settings. Use `python3` wherever
+`python` is not available.
 
 | Setting | What it is | Default |
 |---|---|---|
@@ -81,10 +87,45 @@ command in this file that passes these flags. Use `python3` wherever `python` is
 | `signature_page` | `same-page`, `separate-page`, or `ask` (see below) | `same-page` |
 | `default_notary_state` | The state used when a place gives no state, and for the "leave the county blank" option | `Massachusetts` |
 
-- **`errors` not empty** (the attorney in fact is not set): tell the user, ask for the name, and
-  do not build until they give it. Use the name they give for this run (put it in
-  `attorney_in_fact` in the values file, Step 4) and tell them how to save it: `/plugin configure
-  ma-seller-poa@ma-seller-poa` in Claude Code, or `firm-settings.json` in the skill folder.
+- **`errors` not empty** (the attorney in fact is not set anywhere — the usual first run in
+  Cowork): do not build yet. Ask **once, in one question call**, for everything the script did not
+  find (never re-ask a setting it found):
+  1. **Attorney in fact** — "Who does every POA appoint, exactly as it should print?" Options:
+     "Type the name under Other (e.g. Alex Q. Attorney, Esq.)" and "I'll set it later — stop for
+     now". The answer typed under Other is the name; the second option means stop.
+  2. **Signing locations** — "Where do your signings usually happen? Type your offices under
+     Other as Label = County, State, separated by ; — the first is the default (e.g. Main office
+     = Plymouth County, MA; Boston office = Suffolk County, MA)." Options: "No fixed places — I'll
+     type the place each time" (empty list) and "Anywhere in Massachusetts — county left blank"
+     (`Mobile signings = MA`).
+  3. **Signature page** — options "Same page as the POA text (Recommended)" (`same-page`),
+     "Always a separate signature page" (`separate-page`), "Ask me every time" (`ask`).
+  4. **Save** — "Save these so later runs don't ask again?" Options: "Save in [Clients folder]
+     (Recommended)" — the P&S folder's parent, shown as its folder name — and "Use for this run
+     only". The user may type another folder under Other. When the P&S has no folder on disk,
+     or the parent is not clearly the firm's Clients folder, ask which folder to save in.
+
+  Then save with the script (it validates first and writes nothing if anything is wrong — fix
+  what it reports with the user, then save again):
+
+  ```bash
+  python "[SKILL_BASE_DIR]/scripts/firm_settings.py" --save "[folder]/seller-poa-firm-settings.json" \
+    --attorney-in-fact "[name]" --signing-locations "[locations, or empty]" \
+    --signature-page "[same-page|separate-page|ask]"
+  ```
+
+  Then run `--show` again (same flags as above) and go on with what it prints. Later runs find the
+  file by themselves when it is in the P&S folder's parent or grandparent; if the user saved it
+  anywhere else, tell them it will only be found there (or pass `--settings-file` to it). "Use for
+  this run only" → use the answers for this run (put the name in `attorney_in_fact` in the values
+  file, Step 4) and pass `--signing-locations` / `--signature-page` with them in this run's
+  commands. In Claude Code, also mention that `/plugin configure ma-seller-poa@ma-seller-poa`
+  saves the settings as plugin settings.
+- **"Change my firm settings"** (or similar): run `--show`, show each current value and where it
+  came from (`sources`), ask what to change, and save the changes with `--save` to the
+  `settings_file` it printed (or, if there is none, in the Clients folder as above; `--save` keeps
+  the values you don't pass). If a value comes from the plugin settings, say that plugin settings
+  win over the file and are changed with `/plugin configure ma-seller-poa@ma-seller-poa`.
 - **`warnings`** (a signing location skipped or a county corrected): mention them once.
 - Use the printed `mode` (`same` / `separate`) in Step 4. When `signature_page` is `ask`, ask in
   Step 3.
@@ -574,7 +615,8 @@ Ask **all questions at once** in a single `AskUserQuestion` call:
    ```bash
    python "[SKILL_BASE_DIR]/scripts/firm_settings.py" --location-options \
      --signing-locations "${user_config.signing_locations}" \
-     --notary-state "${user_config.default_notary_state}" --property-county "[Property's county]"
+     --notary-state "${user_config.default_notary_state}" --search-from "[P&S folder]" \
+     --property-county "[Property's county]"
    ```
 
    It prints up to four options (`label`, `description`, `state`, `county`): the firm's signing
@@ -587,7 +629,7 @@ Ask **all questions at once** in a single `AskUserQuestion` call:
    ("Rockingham County, NH"), or just a **city or town** ("Weymouth", "Concord, NH").
    **Reading the answer:** an option → its `state` and `county` (an option whose `state` is null
    means the user will type the place). Typed text → first try
-   `firm_settings.py --resolve-location "[text]" --signing-locations "${user_config.signing_locations}"`
+   `firm_settings.py --resolve-location "[text]" --signing-locations "${user_config.signing_locations}" --search-from "[P&S folder]"`
    (a firm location's name, even shortened, e.g. "boston" → "Boston office"); if it is not a
    firm location, see "Reading the notary location" below.
 3. **Notary pronoun — only when exactly ONE person signs** (one individual seller, one trustee,
@@ -1170,7 +1212,7 @@ it is signed. Do not describe it as final or as legal advice.
 |---|---|
 | `doctor.py` | Checks the requirements and the firm settings |
 | `render_pages.py` | Renders PDF pages to PNG images, for reading scanned pages |
-| `firm_settings.py` | Reads the firm settings; builds the notary location options; matches a typed firm location |
+| `firm_settings.py` | Reads the firm settings; saves the firm settings file (`--save`); builds the notary location options; matches a typed firm location |
 | `build_all_poas.py` | Builds and checks every POA for one P&S (Step 4) — the only builder you run |
 | `build_individual_poa.py`, `build_entity_poa.py`, `build_trustee_poa.py`, `build_estate_poa.py` | One builder per seller type (run by `build_all_poas.py`) |
 | `notary_block.py` | The notary acknowledgment; `--date-options` and `--pronoun-options` for Step 3 |

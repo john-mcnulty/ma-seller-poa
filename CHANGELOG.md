@@ -3,6 +3,27 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.2.0 — Cowork-first: firm settings that persist (unreleased)
+
+- **The firm settings are asked once and saved.** Cowork (and a skill installed on its own) has
+  no plugin settings, so the skill used to ask for the attorney in fact on every run and never
+  offered the firm's signing locations. On the first run it now asks once, in one question, for
+  the attorney in fact, the signing locations and the signature page, and saves them as
+  `seller-poa-firm-settings.json` in the firm's Clients folder. Later runs find the file in the
+  P&S folder's parent or grandparent and ask nothing; the notary location question offers the
+  firm's offices. "Change my firm settings" shows each value and where it came from, and saves.
+- `firm_settings.py`: new `--search-from` / `--settings-file` (read the file) and `--save` (writes
+  only after every value checks out: attorney set and not a placeholder, every signing location
+  readable, a valid signature page and state; keeps the file's other values). The file is listed
+  in `sources`; the doctor shows it.
+- Claude Code is unchanged: plugin settings still win over the file.
+- README: "Use it in Cowork (recommended)" comes first; Cowork needs nothing installed.
+- CI: the regression suite also runs on Windows; every job has a 30-minute limit.
+- Tests: 9 settings-file checks (read, save, refusals, precedence, nothing set still asks).
+  **The runner now finds LibreOffice in its Windows install folder**: on Windows it used to look
+  only on the PATH, so it silently skipped the text comparison. All 45 scenarios now compare
+  equal on Windows too.
+
 ## 0.1.3 — Windows console text (unreleased)
 
 - **A Windows console can no longer stop a build.** The Word validator printed "→", which a

@@ -43,3 +43,6 @@ ps_redline*.txt
 *.key
 .venv/
 venv/
+
+# The firm settings file the skill saves on a first run (a firm's own values; keep it out of a checkout)
+seller-poa-firm-settings.json

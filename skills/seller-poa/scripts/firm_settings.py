@@ -4,6 +4,12 @@
     python firm_settings.py --show [SETTING FLAGS]
     python firm_settings.py --location-options [SETTING FLAGS] [--property-county Norfolk]
     python firm_settings.py --resolve-location "Main office" [SETTING FLAGS]
+    python firm_settings.py --save PATH [SETTING FLAGS]
+
+SETTINGS FILE FLAGS (optional, for any command except --save):
+    --settings-file   PATH   a firm settings file (seller-poa-firm-settings.json) to read
+    --search-from     DIR    the P&S folder: look for seller-poa-firm-settings.json in its
+                             parent (the firm's Clients folder), then its grandparent
 
 SETTING FLAGS (each optional; SKILL.md passes the plugin settings here):
     --attorney-in-fact    "Alex Q. Attorney, Esq."
@@ -17,10 +23,13 @@ WHERE EACH VALUE COMES FROM, in this order (the first usable one wins):
      the setting was never set, counts as missing;
   2. the plugin settings as Claude Code saved them (`pluginConfigs` in ~/.claude/settings.json),
      read directly -- the same values as 1, for when they were not filled into SKILL.md;
-  3. the JSON file named by the SELLER_POA_SETTINGS environment variable, if set;
-  4. firm-settings.json in the skill folder (next to SKILL.md) -- the place to put the firm's
+  3. the firm settings file: --settings-file, else the first seller-poa-firm-settings.json found
+     from --search-from (the P&S folder's parent, then its grandparent). This is where a Cowork
+     or skill-only install keeps the settings: the skill asks once and saves them (--save);
+  4. the JSON file named by the SELLER_POA_SETTINGS environment variable, if set;
+  5. firm-settings.json in the skill folder (next to SKILL.md) -- the place to put the firm's
      values when the skill is uploaded on its own (e.g. a ZIP added to Claude in the browser);
-  5. the built-in default -- EXCEPT attorney_in_fact, which has no default: every POA appoints
+  6. the built-in default -- EXCEPT attorney_in_fact, which has no default: every POA appoints
      that person, so it must be chosen by the firm. Without it --show reports an error and
      build_all_poas.py refuses to build.
 
@@ -33,6 +42,12 @@ new lines; "County" is optional; the state may be a name or a postal code. A Mas
 must be one of the 14 (a close misspelling is corrected). "= State" alone (no county) is allowed:
 the notary block then prints a blank county line. In firm-settings.json the list may also be
 given as objects: [{"label": "Main office", "county": "Plymouth", "state": "MA"}].
+
+SAVING (--save PATH): writes the values given by the setting flags to PATH (named
+seller-poa-firm-settings.json), keeping any other values already in that file. Nothing is written
+unless every value is valid: the attorney in fact is set and not a placeholder, every signing
+location parses (none skipped), signature_page is same-page / separate-page / ask, and the notary
+state is a state. --signing-locations "" clears the list. Exit 1 (nothing written) on errors.
 
 Prints JSON. Exit 0 always for --location-options / --resolve-location (problems are listed
 in "warnings"); --show exits 1 when a required setting is missing or a value is invalid.
@@ -51,6 +66,7 @@ SKILL_DIR = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 from notary_block import STATES, MA_COUNTIES, state_name, check_county  # noqa: E402
 
+SETTINGS_FILE_NAME = "seller-poa-firm-settings.json"
 DEFAULTS = {"signature_page": "same-page", "notary_state": "Massachusetts",
             "signing_locations": [], "attorney_in_fact": ""}
 PAGE_CHOICES = ("same-page", "separate-page", "ask")
@@ -98,8 +114,28 @@ def claude_code_plugin_config():
     return {}
 
 
-def file_sources():
+def find_settings_file(settings_file=None, search_from=None):
+    """The firm settings file to read: --settings-file if given, else the first
+    seller-poa-firm-settings.json in the P&S folder's parent, then its grandparent."""
+    if not unresolved(settings_file):
+        return os.path.abspath(settings_file)
+    if unresolved(search_from):
+        return None
+    start = os.path.abspath(search_from)
+    if os.path.isfile(start):              # the P&S file itself instead of its folder
+        start = os.path.dirname(start)
+    parent = os.path.dirname(start)
+    for folder in (parent, os.path.dirname(parent)):
+        cand = os.path.join(folder, SETTINGS_FILE_NAME)
+        if os.path.isfile(cand):
+            return cand
+    return None
+
+
+def file_sources(settings_file=None):
     out = [("Claude Code plugin settings (settings.json)", claude_code_plugin_config())]
+    if settings_file:
+        out.append((f"firm settings file ({settings_file})", load_json(settings_file)))
     env = os.environ.get("SELLER_POA_SETTINGS")
     if env:
         out.append(("SELLER_POA_SETTINGS file", load_json(env)))
@@ -107,10 +143,10 @@ def file_sources():
     return out
 
 
-def resolve(flags):
+def resolve(flags, settings_file=None):
     """Merge flags -> files -> defaults. Returns (settings, sources)."""
     settings, sources = {}, {}
-    files = file_sources()
+    files = file_sources(settings_file)
     for key in DEFAULTS:
         val = flags.get(key)
         if not unresolved(val):
@@ -169,13 +205,24 @@ def place_text(state, county):
 
 
 def show(flags):
-    s, src = resolve(flags)
     errors, warns = [], []
+    sfile = find_settings_file(flags.get("settings_file"), flags.get("search_from"))
+    if sfile and not os.path.isfile(sfile):
+        warns.append(f"settings file {sfile} does not exist -- not read")
+        sfile = None
+    try:
+        s, src = resolve(flags, sfile)
+    except (OSError, ValueError) as e:
+        warns.append(f"settings file {sfile} could not be read ({e}) -- not used")
+        sfile = None
+        s, src = resolve(flags, None)
     if unresolved(s["attorney_in_fact"]):
         errors.append("attorney_in_fact is not set. Every POA appoints this person, so there is no "
-                      "default: set it in the plugin settings (/plugin configure ma-seller-poa@ma-seller-poa) "
-                      "or in firm-settings.json next to SKILL.md. Ask the user for the name "
-                      "(e.g. 'Alex Q. Attorney, Esq.') and do not build until it is set.")
+                      "default. Ask the user ONCE for the firm settings (attorney in fact, signing "
+                      "locations, signature page) and offer to save them with --save to "
+                      f"{SETTINGS_FILE_NAME} in the firm's Clients folder (the P&S folder's parent); "
+                      "in Claude Code they can instead be set with /plugin configure "
+                      "ma-seller-poa@ma-seller-poa. Do not build until it is set.")
     page = str(s["signature_page"]).strip().lower()
     if page not in PAGE_CHOICES:
         warns.append(f"signature_page '{s['signature_page']}' is not one of {', '.join(PAGE_CHOICES)}"
@@ -191,7 +238,7 @@ def show(flags):
     out = {"attorney_in_fact": s["attorney_in_fact"] if not unresolved(s["attorney_in_fact"]) else None,
            "signature_page": page, "mode": {"same-page": "same", "separate-page": "separate"}.get(page),
            "notary_state": state, "signing_locations": locs, "sources": src,
-           "errors": errors, "warnings": warns}
+           "settings_file": sfile, "errors": errors, "warnings": warns}
     return out
 
 
@@ -252,21 +299,83 @@ def resolve_location(text, flags):
                                    "or a city or town (SKILL.md, 'Reading the notary location')"}
 
 
+def save(path, given):
+    """Validate the values given and write them to PATH, keeping its other values.
+    Returns (result, ok); nothing is written unless ok."""
+    path = os.path.abspath(path)
+    errors = []
+    if os.path.basename(path) != SETTINGS_FILE_NAME:
+        errors.append(f"the settings file must be named {SETTINGS_FILE_NAME} (so later runs find it)")
+    if not os.path.isdir(os.path.dirname(path)):
+        errors.append(f"folder {os.path.dirname(path)} does not exist")
+    if all(v is None for v in given.values()):
+        errors.append("no setting flags given -- nothing to save")
+    data = {}
+    if not errors and os.path.isfile(path):
+        try:
+            data = load_json(path)
+            if not isinstance(data, dict):
+                raise ValueError("not a JSON object")
+        except (OSError, ValueError) as e:
+            errors.append(f"the existing {path} could not be read ({e}); not overwritten")
+    for key, val in given.items():
+        if val is not None:
+            data["default_notary_state" if key == "notary_state" else key] = val
+    data.pop("notary_state", None)
+    aif = data.get("attorney_in_fact")
+    if unresolved(aif):
+        errors.append("attorney_in_fact is empty or a placeholder -- it is required")
+    else:
+        data["attorney_in_fact"] = " ".join(str(aif).split())
+    page = str(data.get("signature_page") or DEFAULTS["signature_page"]).strip().lower()
+    if page not in PAGE_CHOICES:
+        errors.append(f"signature_page '{data.get('signature_page')}' must be one of "
+                      f"{', '.join(PAGE_CHOICES)}")
+    data["signature_page"] = page
+    state = "Massachusetts"
+    try:
+        state = state_name(data.get("default_notary_state") or DEFAULTS["notary_state"])
+        data["default_notary_state"] = state
+    except ValueError as e:
+        errors.append(f"default_notary_state: {e}")
+    locs, warns = parse_locations(data.get("signing_locations") or [], state)
+    skipped = [w for w in warns if " skipped " in w]
+    errors += skipped
+    if not errors:
+        data["signing_locations"] = [{"label": l["label"], "county": l["county"],
+                                      "state": ABBR.get(l["state"], l["state"])} for l in locs]
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        os.replace(tmp, path)
+    return ({"saved": None if errors else path, "settings": data, "errors": errors,
+             "warnings": [w for w in warns if w not in skipped]}, not errors)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Seller POA firm settings")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--show", action="store_true")
     g.add_argument("--location-options", action="store_true")
     g.add_argument("--resolve-location")
+    g.add_argument("--save", metavar="PATH")
     ap.add_argument("--attorney-in-fact")
     ap.add_argument("--signing-locations")
     ap.add_argument("--signature-page")
     ap.add_argument("--notary-state")
     ap.add_argument("--property-county")
     ap.add_argument("--property-state")
+    ap.add_argument("--settings-file")
+    ap.add_argument("--search-from")
     a = ap.parse_args(argv)
     flags = {"attorney_in_fact": a.attorney_in_fact, "signing_locations": a.signing_locations,
              "signature_page": a.signature_page, "notary_state": a.notary_state}
+    if a.save:
+        out, ok = save(a.save, flags)
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+        return 0 if ok else 1
+    flags.update(settings_file=a.settings_file, search_from=a.search_from)
     if a.show:
         out = show(flags)
         print(json.dumps(out, indent=2, ensure_ascii=False))

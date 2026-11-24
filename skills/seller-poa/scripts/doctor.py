@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """doctor.py -- check that this machine can run the Seller POA skill.
 
-    python doctor.py [SETTING FLAGS as for firm_settings.py --show]
+    python doctor.py [SETTING FLAGS and --settings-file / --search-from, as for firm_settings.py --show]
 
 REQUIRED  Python 3.9+; pandoc (reads a Word P&S, verifies each POA); page images for scanned PDFs
           (PyMuPDF, or poppler's `pdftoppm`); LibreOffice (`soffice`) and a
@@ -120,7 +120,8 @@ def main():
     flags = {}
     args = sys.argv[1:]
     for flag, key in (("--attorney-in-fact", "attorney_in_fact"), ("--signing-locations", "signing_locations"),
-                      ("--signature-page", "signature_page"), ("--notary-state", "notary_state")):
+                      ("--signature-page", "signature_page"), ("--notary-state", "notary_state"),
+                      ("--settings-file", "settings_file"), ("--search-from", "search_from")):
         if flag in args and args.index(flag) + 1 < len(args):
             flags[key] = args[args.index(flag) + 1]
     st = firm_settings.show(flags)
@@ -133,6 +134,8 @@ def main():
     rows.append(("info", "signature page", True, st["signature_page"]))
     rows.append(("info", "settings came from", True,
                  "; ".join(f"{k} <- {v}" for k, v in st["sources"].items())))
+    rows.append(("info", "firm settings file", bool(st.get("settings_file")),
+                 st.get("settings_file") or "none found (Cowork / skill-only installs save one on the first run)"))
 
     for tier, name, ok, detail in rows:
         mark = "ok  " if ok else ("MISSING" if tier == "REQUIRED" else "--  ")

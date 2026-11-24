@@ -13,6 +13,9 @@ attorney in a residential real estate sale.
 
 ## Requirements — install these first
 
+**Using Cowork? Skip this section** — every program below is already there; go to
+[Install](#install).
+
 | | What | Why | Install |
 |---|---|---|---|
 | **Required** | **Python 3.9+** | Runs the builders (standard library only) | [python.org](https://www.python.org/downloads/) |
@@ -24,8 +27,8 @@ attorney in a residential real estate sale.
 | Optional | Times New Roman or Liberation Serif fonts | The fonts names are measured in | Usually already installed |
 | Optional | A `docx` skill with `validate.py` | An extra structural check of each finished `.docx` | Claude's built-in docx skill, where available |
 
-And [Claude Code](https://claude.com/claude-code) (or another Claude surface that can run skills
-with a shell — see [Install](#install)).
+This table is for Claude Code (or another Claude surface that can run skills with a shell) on your
+own computer.
 
 **What happens without LibreOffice or a working PDF reader?** The POAs are still built and checked, but
 the layout step cannot run: the signature section is only marked "keep together" in Word, no
@@ -96,7 +99,30 @@ with both signature lines and a Massachusetts notary acknowledgment for Plymouth
 
 ## Install
 
-### Claude Code (plugin — recommended)
+### Use it in Cowork (recommended)
+
+Cowork already has every program the skill needs (Python, pandoc, LibreOffice, PyMuPDF), so
+there is nothing to install on your computer.
+
+1. In Cowork, open **Customize → Plugins → Add marketplace** and enter
+   `john-mcnulty/ma-seller-poa`.
+2. Install **ma-seller-poa** from that marketplace.
+3. Connect your firm's **Clients folder** — the folder that holds one folder per client, with the
+   P&S inside the client's folder.
+4. Run it: *"Prepare the seller POA from the P&S in [client]'s folder."* or
+   `/ma-seller-poa:seller-poa`.
+
+**The first run asks for your firm settings once** — the attorney in fact, your signing
+locations, and where the signature page goes — and offers to save them as
+`seller-poa-firm-settings.json` at the top of your Clients folder. Every later run reads that
+file and asks nothing more: the notary location question offers your offices as a pick list. To
+change them, say *"change my firm settings"*, or edit the file (see [Settings](#settings)).
+
+### Claude Code (plugin)
+
+In Claude Code on Windows, macOS or Linux, **you install the required programs yourself** — on
+Windows: pandoc, LibreOffice and PyMuPDF (see [Requirements](#requirements--install-these-first));
+then run the doctor.
 
 ```
 /plugin marketplace add john-mcnulty/ma-seller-poa
@@ -128,18 +154,35 @@ claude plugin update ma-seller-poa@ma-seller-poa
 ### The skill on its own (e.g., uploaded to Claude)
 
 The skill is the folder `skills/seller-poa/`. Zip that folder and add it as a skill where your
-Claude plan allows custom skills. **Before zipping, edit `skills/seller-poa/firm-settings.json`**
-— there are no plugin settings in this mode, and the skill refuses to build until
+Claude plan allows custom skills. There are no plugin settings in this mode: the first run asks
+for the firm settings and saves them in your Clients folder, as in Cowork — or edit
+`skills/seller-poa/firm-settings.json` before zipping. The skill refuses to build until
 `attorney_in_fact` is set. The surface must be able to run Python and the required programs above.
 
 ---
 
 ## Settings
 
-**Set every one explicitly.** In a plugin install, an option you leave unset can reach the skill as
-a literal `${user_config.…}` placeholder; the skill treats that as missing (it never passes a
-placeholder into a document), but setting them removes the guesswork. Change them any time with
-`/plugin configure ma-seller-poa@ma-seller-poa`.
+**In Cowork** (and for the skill on its own) the settings live in `seller-poa-firm-settings.json`
+at the top of your Clients folder; the first run writes it for you. The skill looks for it in the
+P&S folder's parent and grandparent, so keep it there. It is plain JSON:
+
+```json
+{
+  "attorney_in_fact": "Alex Q. Attorney, Esq.",
+  "signing_locations": [
+    {"label": "Main office", "county": "Plymouth", "state": "MA"},
+    {"label": "Boston office", "county": "Suffolk", "state": "MA"}
+  ],
+  "signature_page": "same-page",
+  "default_notary_state": "Massachusetts"
+}
+```
+
+**In Claude Code**, set every plugin setting explicitly. An option you leave unset can reach the
+skill as a literal `${user_config.…}` placeholder; the skill treats that as missing (it never
+passes a placeholder into a document), but setting them removes the guesswork. Change them any
+time with `/plugin configure ma-seller-poa@ma-seller-poa`. Plugin settings win over the file.
 
 | Setting | What it does | Default |
 |---|---|---|
@@ -183,8 +226,9 @@ In `firm-settings.json` (skill-only installs) the same list can be written as ob
 ```
 
 Settings are read in this order: the plugin setting filled into the skill → the plugin settings
-Claude Code saved at install (`pluginConfigs` in `~/.claude/settings.json`, read directly) → the JSON
-file named by the `SELLER_POA_SETTINGS` environment variable → `skills/seller-poa/firm-settings.json`
+Claude Code saved at install (`pluginConfigs` in `~/.claude/settings.json`, read directly) →
+`seller-poa-firm-settings.json` in the P&S folder's parent or grandparent (your Clients folder) →
+the JSON file named by the `SELLER_POA_SETTINGS` environment variable → `skills/seller-poa/firm-settings.json`
 → the default. The doctor's "settings came from" line shows which one each value came from.
 
 ---
@@ -219,7 +263,8 @@ file named by the `SELLER_POA_SETTINGS` environment variable → `skills/seller-
 ## Development
 
 ```bash
-python tests/run_tests.py          # 45 fictional scenarios, text compared with tests/expected/
+python tests/run_tests.py          # 45 fictional scenarios + 9 settings-file checks
+python tests/test_firm_settings.py # the settings-file checks on their own
 python tests/test_scrub_gate.py    # proves the commit gate blocks what it claims to
 python scripts/scrub_check.py      # the commit gate
 ```

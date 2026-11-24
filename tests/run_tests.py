@@ -9,6 +9,7 @@ Each scenario in tests/scenarios/ is a poa_values.json (the file the skill write
 a "_test" entry: {"mode": "same"|"separate", "expect": "OK"|"STOPPED"}. The runner builds it with
 build_all_poas.py into a temporary folder, converts every POA to plain text with pandoc, and
 compares the text with tests/expected/<scenario>/. Error scenarios must stop with nothing saved.
+It then runs the firm settings file checks in tests/test_firm_settings.py ("settings_*").
 
 Requirements: Python 3, pandoc. LibreOffice is optional here: without it keep_together.py cannot
 render the page layout, so the page-break caption and notice differ. Expected files are
@@ -30,7 +31,12 @@ def have(cmd):
 
 
 def soffice():
-    return have("soffice") or have("libreoffice")
+    """LibreOffice as the builders find it (keep_together.find_soffice): on the PATH, or in its
+    usual Windows / macOS install folder, which a Windows install does not put on the PATH."""
+    sys.path.insert(0, os.path.join(SKILL, "scripts"))
+    sys.dont_write_bytecode = True
+    from keep_together import find_soffice
+    return bool(find_soffice())
 
 
 def run_scenario(path, scripts, assets, out_dir):
@@ -139,7 +145,18 @@ def main():
         shutil.rmtree(out, ignore_errors=True)
         print(f"{'FAIL' if problem else 'ok  '}  {name}" + (f"\n      {problem}" if problem else ""))
         fails += bool(problem)
-    print(f"\n{len(names) - fails}/{len(names)} passed" + (" (expected files updated)" if a.update else ""))
+    # the firm settings file (tests/test_firm_settings.py): read, save, refuse, precedence
+    sys.path.insert(0, HERE)
+    import test_firm_settings
+    total = len(names)
+    for name, problem in test_firm_settings.run_checks():
+        name = "settings_" + name
+        if a.k not in name:
+            continue
+        total += 1
+        print(f"{'FAIL' if problem else 'ok  '}  {name}" + (f"\n      {problem}" if problem else ""))
+        fails += bool(problem)
+    print(f"\n{total - fails}/{total} passed" + (" (expected files updated)" if a.update else ""))
     return 1 if fails else 0
 
 
