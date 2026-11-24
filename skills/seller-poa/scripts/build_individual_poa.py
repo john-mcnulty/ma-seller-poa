@@ -48,6 +48,11 @@ Needs notary_block.py in the same folder. Run keep_together.py and check_agreeme
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import json, os, re, sys, tempfile, zipfile
 from xml.sax.saxutils import escape
 from notary_block import (BODY_PPR, _date_runs, agreement_runs, appointments, attorney_in_fact,

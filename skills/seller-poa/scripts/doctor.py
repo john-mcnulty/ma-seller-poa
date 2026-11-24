@@ -20,6 +20,11 @@ Sends nothing over the network.
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import os, platform, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +56,7 @@ NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}   # CREATE_
 def version(cmd):
     try:
         out = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=60,
+                             encoding="utf-8", errors="replace",
                              **NO_WINDOW).stdout
         return (out.strip().splitlines() or [""])[0][:60]
     except Exception:

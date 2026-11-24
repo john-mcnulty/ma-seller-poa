@@ -19,6 +19,11 @@ Prints one line: AGREEMENT: OK, or AGREEMENT: PROBLEM -- <details>. Exit code 1 
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import re, sys, zipfile
 from notary_block import (CAPACITY_HEADS, COUNTERPARTS, PRONOUN_BLANK, plural_capacity,
                           singular_capacity)

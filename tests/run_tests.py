@@ -42,7 +42,8 @@ def run_scenario(path, scripts, assets, out_dir):
     json.dump(v, open(vals, "w", encoding="utf-8"), indent=2)
     cmd = [sys.executable, os.path.join(scripts, "build_all_poas.py"), assets, vals, out_dir,
            "--mode", meta.get("mode", "same")]
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=work)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       cwd=work, env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"))
     shutil.rmtree(work, ignore_errors=True)
     return meta, r
 
@@ -68,7 +69,7 @@ def normalize(text):
 
 def docx_text(p):
     return subprocess.run(["pandoc", p, "-t", "plain", "--wrap=none"], capture_output=True,
-                          text=True, check=True).stdout
+                          text=True, encoding="utf-8", check=True).stdout
 
 
 def main():

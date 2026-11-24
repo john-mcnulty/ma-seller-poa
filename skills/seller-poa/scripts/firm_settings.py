@@ -39,6 +39,11 @@ in "warnings"); --show exits 1 when a required setting is missing or a value is 
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import argparse, difflib, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))

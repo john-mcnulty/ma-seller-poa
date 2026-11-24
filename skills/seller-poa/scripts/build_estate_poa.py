@@ -39,6 +39,11 @@ Run keep_together.py and check_agreement.py on the output afterwards.
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import json, re, sys
 from build_entity_poa import (BASE_PT, COL_TWIPS, WITHOUT, body_p, by_line, cell, fit_size, join_list,
                               long_date_runs, run, signature_sections, write_poa)

@@ -11,6 +11,11 @@ Exit 0 on success; 2 when neither renderer is available (says what to install).
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import argparse, os, shutil, subprocess, sys, tempfile
 
 NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}   # CREATE_NO_WINDOW
@@ -59,7 +64,8 @@ def render(pdf, pages, dpi, out):
                 paths.append(path)
             return paths, doc.page_count
     # pdftoppm: render the requested range page by page (it numbers files itself)
-    info = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, **NO_WINDOW).stdout \
+    info = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", **NO_WINDOW).stdout \
         if shutil.which("pdfinfo") else ""
     n = next((int(l.split()[-1]) for l in info.splitlines() if l.startswith("Pages:")), 9999)
     paths = []

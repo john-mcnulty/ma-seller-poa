@@ -83,6 +83,11 @@ Prints one block per POA and a final line: ALL POAS: OK (n built) or ALL POAS: S
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import argparse, json, os, re, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -283,7 +288,11 @@ def appointments_summary(shared, principals):
 
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=HERE,
+    # Children (our builders and the docx skill's validator) print UTF-8 ("→"), which a Windows
+    # console's default code page can't encode -- force UTF-8 both ways.
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       cwd=HERE, env=env,
                        **({"creationflags": 0x08000000} if os.name == "nt" else {}))
     out = (r.stdout + r.stderr).strip()
     return r.returncode, out

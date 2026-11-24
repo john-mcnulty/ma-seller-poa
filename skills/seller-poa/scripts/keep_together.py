@@ -29,6 +29,11 @@ The .docx is updated in place. Prints a one-line result.
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import argparse, os, re, shutil, subprocess, sys, tempfile, zipfile
 from xml.sax.saxutils import escape
 
@@ -246,6 +251,7 @@ def render(docx, soffice):
         return render_pymupdf(pdf)
     try:
         html = subprocess.run(["pdftotext", "-bbox", pdf, "-"], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace",
                               check=True, timeout=120, **NO_WINDOW).stdout
     except (subprocess.CalledProcessError, OSError):
         if _have_pymupdf():                 # a pdftotext that passed the check but still failed
@@ -280,7 +286,8 @@ def pdftotext_has_bbox():
         return False
     if exe not in _BBOX_OK:
         try:
-            r = subprocess.run([exe, "-h"], capture_output=True, text=True, timeout=30, **NO_WINDOW)
+            r = subprocess.run([exe, "-h"], capture_output=True, text=True, timeout=30,
+                               encoding="utf-8", errors="replace", **NO_WINDOW)
             _BBOX_OK[exe] = "-bbox" in (r.stdout + r.stderr)
         except Exception:
             _BBOX_OK[exe] = False

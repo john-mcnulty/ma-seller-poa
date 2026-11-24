@@ -23,6 +23,11 @@ same folder. Prints the entity-name font size used. Run keep_together.py on the 
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import datetime, json, os, re, sys, tempfile, zipfile
 from xml.sax.saxutils import escape
 from notary_block import (attorney_in_fact, SIG_TABS, agreement_runs, appointments, check_ps_date,

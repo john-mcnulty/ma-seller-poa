@@ -76,6 +76,11 @@ existing .docx (with several appointments it also rebuilds the EXECUTED / signat
 """
 import sys as _sys
 _sys.dont_write_bytecode = True   # never write __pycache__ into the skill folder
+for _stream in (_sys.stdout, _sys.stderr):   # a Windows console can't print "→" etc. otherwise
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 import datetime, difflib, json, os, re, sys, tempfile, zipfile
 from xml.sax.saxutils import escape
 

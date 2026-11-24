@@ -3,6 +3,15 @@
 The rules live in `skills/seller-poa/SKILL.md`; this file keeps the history of how they came to
 be, so the skill itself stays lean.
 
+## 0.1.3 — Windows console text (unreleased)
+
+- **A Windows console can no longer stop a build.** The Word validator printed "→", which a
+  Windows console's default code page can't encode, so the validator crashed and the build saved
+  nothing (found in a live estate-seller run). Every script now writes UTF-8 to the console, and
+  `build_all_poas.py` runs the builders and the validator with UTF-8 output. Reproduced and
+  verified with the Windows code page (cp1252).
+- The test runner reads its children's output as UTF-8 too.
+
 ## 0.1.2 — scanned PDFs (unreleased)
 
 - **New `render_pages.py`** renders PDF pages to images for reading scanned pages (PyMuPDF first,
